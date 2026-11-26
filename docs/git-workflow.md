@@ -131,7 +131,7 @@ Legacy Branch Protection is not used; all governance is enforced via **GitHub Re
 ### 4.3 Security & Release Controls
 
 - **Immutable Releases**: Enabled via `PUT /repos/lazyaix/lazyagents/immutable-releases` — locks published release tags and assets against post-publication modification or deletion.
-- **Dependabot**: Vulnerability alerts, automated security updates, and `.github/dependabot.yml` weekly grouped PRs for `cargo` and `github-actions` (preserving 40-char SHA pinning).
+- **Dependabot**: Vulnerability alerts, automated security updates, and `.github/dependabot.yml` weekly grouped PRs for `cargo` and `github-actions` with a 7-day supply-chain `cooldown` (`default-days: 7`, preserving 40-char SHA pinning).
 - **GitHub Actions Supply Chain**:
   - All `uses:` references pinned to full 40-character commit SHAs with `# vX.Y.Z` version comments.
   - Top-level `permissions: {}` on every workflow; least-privilege per job.
