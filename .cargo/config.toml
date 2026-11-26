@@ -1,0 +1,12 @@
+# Cargo workspace configuration (Rust 1.100+)
+
+[registry]
+# Supply-chain defense: delay automatic resolution of newly published crates by 7 days.
+# Emergency security override for a single command:
+#   CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow cargo update -p <crate> --precise <version>
+global-min-publish-age = "7 days"
+
+[alias]
+xtest = "test --workspace --all-features"
+xlint = "clippy --workspace --all-targets --all-features -- -D warnings"
+xdoc = "doc --workspace --no-deps --all-features"

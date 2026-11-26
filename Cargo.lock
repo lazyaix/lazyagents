@@ -3,5 +3,28 @@
 version = 4
 
 [[package]]
+name = "la-core"
+version = "0.1.0"
+
+[[package]]
+name = "la-runtime"
+version = "0.1.0"
+dependencies = [
+ "la-core",
+]
+
+[[package]]
+name = "la-tui"
+version = "0.1.0"
+dependencies = [
+ "la-core",
+]
+
+[[package]]
 name = "lazyagents"
 version = "0.1.0"
+dependencies = [
+ "la-core",
+ "la-runtime",
+ "la-tui",
+]

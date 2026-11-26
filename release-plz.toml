@@ -7,14 +7,27 @@
 git_only = true
 publish = false
 
-# Automatically create immutable GitHub Releases and v* tags when the Release PR is merged.
+# Disable per-crate Git tags and releases by default; only the primary `lazyagents` binary crate
+# owns the repository-wide `vX.Y.Z` tag and immutable GitHub Release.
+git_release_enable = false
+git_tag_enable = false
+
+# Disable cargo-semver-checks while crates are internal; enable once public library APIs ship.
+semver_check = false
+
+pr_labels = ["release"]
+
+[[package]]
+name = "lazyagents"
+# Automatically create immutable GitHub Releases and `vX.Y.Z` tags when the Release PR is merged.
 # If cargo-dist is adopted later for multi-platform binary releases, set `git_release_enable = false`
 # so cargo-dist publishes the immutable GitHub Release atomically with all binary assets.
 git_release_enable = true
 git_tag_enable = true
 git_tag_name = "v{{ version }}"
-
-# Disable cargo-semver-checks while the crate is binary-only; enable once library APIs exist.
-semver_check = false
-
-pr_labels = ["release"]
+changelog_path = "CHANGELOG.md"
+changelog_include = [
+  "la-core",
+  "la-runtime",
+  "la-tui",
+]

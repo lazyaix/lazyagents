@@ -1,0 +1,14 @@
+[package]
+name = "la-core"
+description = "Pure Sans-I/O domain types, state machines, events, and secret redaction for LazyAgents"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,48 @@
+name: Mutation Testing
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "crates/la-core/**"
+      - "Cargo.toml"
+      - "rust-toolchain.toml"
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  mutants-core:
+    name: Mutants (la-core)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate pinned Rust toolchain
+        run: rustup show active-toolchain
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Install cargo-mutants and cargo-nextest
+        uses: taiki-e/install-action@893d6ee8d714b6c7dfe2bcd94e5759e9a7958a7e # v2.90.10
+        with:
+          tool: cargo-mutants,nextest
+
+      - name: Run mutation tests on la-core
+        run: cargo mutants --package la-core --test-tool nextest --no-shuffle
