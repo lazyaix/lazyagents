@@ -155,15 +155,21 @@ GitHub App installation access tokens (`ghs_*`, including GitHub Actions `GITHUB
 
 1. **Continuous Release PR**: On each merge to `main`, `release-plz` analyzes Conventional Commits since the last tag and opens/updates a Release PR bumping `Cargo.toml`/`Cargo.lock` and updating `CHANGELOG.md`.
 2. **Human Release Gate**: Merging the Release PR triggers `release-plz release`, which creates the `vX.Y.Z` tag and publishes an **Immutable GitHub Release**.
-3. **Enterprise Token Configuration (GitHub App Preferred)**: Because the `lazyaix` enterprise policy restricts default `GITHUB_TOKEN` from creating PRs, either configure a repo-scoped fine-grained PAT (`RELEASE_PLZ_TOKEN`) or—preferred for production—mint a short-lived installation token from a dedicated GitHub App (`Contents: Read & Write`, `Pull requests: Read & Write`) using a SHA-pinned `actions/create-github-app-token` step (which also triggers CI checks automatically on Release PRs):
+3. **GitHub App Token Setup (Enterprise Compliant)**: Because the `lazyaix` enterprise policy restricts default `GITHUB_TOKEN` from creating PRs, `.github/workflows/release-plz.yml` mints short-lived, repo-scoped, auto-revoked installation tokens via SHA-pinned `actions/create-github-app-token@v3.4.0` (using `client-id` and explicit least-privilege `permission-*` downscoping). This also ensures Release PRs trigger all 6 required PR CI checks and release tags trigger downstream tag workflows (e.g., `cargo-dist`):
+   - Create a GitHub App under `lazyaix` (Webhook **Inactive**; Repository permissions: **Contents: Read & Write**, **Pull requests: Read & Write**).
+   - Install the App only on `lazyaix/lazyagents`.
+   - Configure repository Actions variable `RELEASE_PLZ_APP_CLIENT_ID` (the App's Client ID) and repository Actions secret `RELEASE_PLZ_APP_PRIVATE_KEY` (the generated `.pem` private key).
+   - Until `RELEASE_PLZ_APP_CLIENT_ID` is set, both `Release-plz` jobs skip cleanly without failing `main`.
 
 ```yaml
-- name: Mint short-lived GitHub App token
+- name: Mint GitHub App token
   id: app-token
   uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
   with:
-    app-id: ${{ vars.RELEASE_PLZ_APP_ID }}
+    client-id: ${{ vars.RELEASE_PLZ_APP_CLIENT_ID }}
     private-key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
+    permission-contents: write
+    permission-pull-requests: write
 ```
 
 Pass `${{ steps.app-token.outputs.token }}` directly to `release-plz/action` as `GITHUB_TOKEN` (no `X-GitHub-Stateless-S2S-Token` override needed).
