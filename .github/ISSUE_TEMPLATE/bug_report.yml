@@ -1,0 +1,39 @@
+name: Bug Report
+description: Report a reproducible bug in lazyagents
+title: "fix: "
+labels:
+  - "bug"
+  - "triage"
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps, commands, or code snippet to reproduce the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs Actual Behavior
+      description: What you expected to happen and what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Rust version (`rustc --version`), and `lazyagents` version or commit SHA.
+      placeholder: |
+        - OS: macOS 15 / Ubuntu 24.04
+        - Rust: rustc 1.xx.x
+        - lazyagents: v0.1.0 / commit SHA
+    validations:
+      required: true

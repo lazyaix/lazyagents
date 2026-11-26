@@ -1,0 +1,11 @@
+# Default code owners for lazyaix/lazyagents.
+# Once a second human maintainer joins, enable `require_code_owner_review`
+# and bump `required_approving_review_count` to 1 in the `Protect main` Ruleset.
+
+* @handoffx
+
+# Security-critical governance and automation paths
+/.github/ @handoffx
+/deny.toml @handoffx
+/release-plz.toml @handoffx
+/SECURITY.md @handoffx
