@@ -139,6 +139,14 @@ Legacy Branch Protection is not used; all governance is enforced via **GitHub Re
   - Audited on every PR via `zizmor`.
 - **Commit Signing**: Recommended via SSH signing keys (documented in `CONTRIBUTING.md`), not currently enforced as a hard Ruleset blocker.
 
+### 4.4 GitHub Token Handling & Stateless Installation Tokens
+
+GitHub App installation access tokens (`ghs_*`, including GitHub Actions `GITHUB_TOKEN` and tokens minted via `actions/create-github-app-token`) use a **stateless JWT format (~520 characters containing `.`)** rather than the legacy 40-character opaque format (the temporary `X-GitHub-Stateless-S2S-Token` per-request override header is retired on November 30, 2026). All workflows, tooling, and `lazyagents` code must follow these rules:
+
+- **Opaque variable-length storage**: Always store and pass GitHub tokens as variable-length opaque strings (never cap columns/buffers at 40 or 255 characters, and never parse, decode, or rely on internal JWT claims).
+- **Secret redaction in logs & agent traces**: Do not use legacy fixed-length patterns such as `ghs_[A-Za-z0-9]{36}`. Match the full stateless token character set and variable length (e.g., `ghs_[A-Za-z0-9._-]{36,}`) so installation tokens are never leaked into logs, traces, or LLM context.
+- **No legacy override header**: Never send `X-GitHub-Stateless-S2S-Token` when requesting installation tokens.
+
 ---
 
 ## 5. Automated Releases (`release-plz`)
@@ -147,7 +155,18 @@ Legacy Branch Protection is not used; all governance is enforced via **GitHub Re
 
 1. **Continuous Release PR**: On each merge to `main`, `release-plz` analyzes Conventional Commits since the last tag and opens/updates a Release PR bumping `Cargo.toml`/`Cargo.lock` and updating `CHANGELOG.md`.
 2. **Human Release Gate**: Merging the Release PR triggers `release-plz release`, which creates the `vX.Y.Z` tag and publishes an **Immutable GitHub Release**.
-3. **Enterprise Token Note**: Because the `lazyaix` enterprise policy restricts default `GITHUB_TOKEN` from creating PRs, configure a repository secret `RELEASE_PLZ_TOKEN` (a fine-grained PAT or GitHub App installation token with `Contents: Read & Write` and `Pull requests: Read & Write` scoped solely to `lazyaix/lazyagents`). This also ensures CI checks automatically run on Release PRs.
+3. **Enterprise Token Configuration (GitHub App Preferred)**: Because the `lazyaix` enterprise policy restricts default `GITHUB_TOKEN` from creating PRs, either configure a repo-scoped fine-grained PAT (`RELEASE_PLZ_TOKEN`) or—preferred for production—mint a short-lived installation token from a dedicated GitHub App (`Contents: Read & Write`, `Pull requests: Read & Write`) using a SHA-pinned `actions/create-github-app-token` step (which also triggers CI checks automatically on Release PRs):
+
+```yaml
+- name: Mint short-lived GitHub App token
+  id: app-token
+  uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+  with:
+    app-id: ${{ vars.RELEASE_PLZ_APP_ID }}
+    private-key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
+```
+
+Pass `${{ steps.app-token.outputs.token }}` directly to `release-plz/action` as `GITHUB_TOKEN` (no `X-GitHub-Stateless-S2S-Token` override needed).
 
 ---
 

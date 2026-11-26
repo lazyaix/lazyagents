@@ -38,4 +38,7 @@ cargo test --workspace --all-features
   - Keep top-level `permissions: {}` and declare minimal per-job permissions.
   - Set `persist-credentials: false` on `actions/checkout`.
   - Never use `pull_request_target` with untrusted PR code.
+- When handling GitHub tokens in Rust code, agent tools, or log/trace redactors:
+  - Treat all GitHub tokens (including ~520-char stateless `ghs_*` App installation tokens) as variable-length opaque strings—never enforce 40/255-char storage caps, never decode JWT payloads, and never use the retired `X-GitHub-Stateless-S2S-Token` header.
+  - Ensure secret-redaction regexes match `ghs_[A-Za-z0-9._-]{36,}` (not legacy `ghs_[A-Za-z0-9]{36}`) so stateless tokens never leak into logs or LLM context.
 - Never commit secrets, tokens, or `.env` files.
