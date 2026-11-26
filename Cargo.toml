@@ -1,16 +1,69 @@
-[package]
-name = "lazyagents"
+[workspace]
+resolver = "3"
+members = [
+    "crates/la-core",
+    "crates/la-runtime",
+    "crates/la-tui",
+    "crates/la-cli",
+]
+default-members = ["crates/la-cli"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
-description = "LazyAgents — open-source AI agents toolkit in Rust"
+rust-version = "1.100"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/lazyaix/lazyagents"
-readme = "README.md"
+authors = ["LazyAIX Contributors"]
+keywords = ["ai", "agents", "tui", "cli", "ratatui"]
+categories = ["command-line-utilities", "development-tools"]
 
-[dependencies]
+[workspace.dependencies]
+la-core = { path = "crates/la-core", version = "0.1.0" }
+la-runtime = { path = "crates/la-runtime", version = "0.1.0" }
+la-tui = { path = "crates/la-tui", version = "0.1.0" }
 
-[lints.rust]
+[workspace.lints.rust]
 unsafe_code = "forbid"
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+unreachable_pub = "warn"
+unused_qualifications = "warn"
 
-[lints.clippy]
+[workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+# Mutually exclusive with `rust.unreachable_pub = "warn"` on items in private modules.
+redundant_pub_crate = "allow"
+
+# TUI & Agent production safety red lines (test exemptions live in clippy.toml)
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "warn"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+exit = "deny"
+await_holding_lock = "deny"
+
+# Explicit safety, module hygiene, integer hygiene, and M-LINT-OVERRIDE-EXPECT enforcement
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
+mod_module_files = "warn"
+arithmetic_side_effects = "warn"
+cast_lossless = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_sign_loss = "warn"
+indexing_slicing = "warn"
+undocumented_unsafe_blocks = "deny"
+multiple_unsafe_ops_per_block = "deny"
+
+[workspace.lints.cargo]
+unused_dependencies = "warn"

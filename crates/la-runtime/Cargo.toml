@@ -1,0 +1,15 @@
+[package]
+name = "la-runtime"
+description = "Async runtime, LLM provider adapters, tools, and embedded PTY execution for LazyAgents"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+la-core.workspace = true
+
+[lints]
+workspace = true

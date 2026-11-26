@@ -1,0 +1,15 @@
+[package]
+name = "la-tui"
+description = "L4 Cyber Flagship Ratatui 0.30 + TachyonFX terminal workbench for LazyAgents"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+la-core.workspace = true
+
+[lints]
+workspace = true

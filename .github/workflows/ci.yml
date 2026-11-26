@@ -19,7 +19,8 @@ permissions: {}
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: -D warnings
+  # Rust 1.97+ native warning denial for local workspace crates without busting rustc caches.
+  CARGO_BUILD_WARNINGS: deny
 
 jobs:
   fmt:
@@ -33,10 +34,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
-        with:
-          components: rustfmt
+      - name: Activate pinned Rust toolchain
+        run: rustup show active-toolchain
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -52,16 +51,36 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
-        with:
-          components: clippy
+      - name: Activate pinned Rust toolchain
+        run: rustup show active-toolchain
 
       - name: Restore Cargo cache
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate pinned Rust toolchain
+        run: rustup show active-toolchain
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Build workspace documentation with zero warnings
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --all-features
 
   test:
     name: Test
@@ -74,8 +93,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+      - name: Activate pinned Rust toolchain
+        run: rustup show active-toolchain
 
       - name: Restore Cargo cache
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -88,10 +107,66 @@ jobs:
       - name: Run unit and integration tests
         run: cargo nextest run --workspace --all-features --no-tests=pass
 
-      - name: Run doc tests (if library targets exist)
+      - name: Run doc tests
+        run: cargo test --workspace --doc --all-features
+
+  cross-platform:
+    name: Cross-Platform (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate pinned Rust toolchain
+        run: rustup show active-toolchain
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@893d6ee8d714b6c7dfe2bcd94e5759e9a7958a7e # v2.90.10
+        with:
+          tool: nextest
+
+      - name: Run unit and integration tests
+        run: cargo nextest run --workspace --all-features --no-tests=pass
+
+      - name: Run doc tests
+        run: cargo test --workspace --doc --all-features
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate pinned Rust toolchain with llvm-tools
         run: |
-          if cargo metadata --no-deps --format-version 1 | grep -q '"kind":\["lib"'; then
-            cargo test --workspace --doc --all-features
-          else
-            echo "No library targets found; skipping doc tests."
-          fi
+          rustup show active-toolchain
+          rustup component add llvm-tools-preview
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Install coverage tooling
+        uses: taiki-e/install-action@893d6ee8d714b6c7dfe2bcd94e5759e9a7958a7e # v2.90.10
+        with:
+          tool: cargo-llvm-cov,nextest
+
+      - name: Run workspace coverage summary
+        run: cargo llvm-cov nextest --workspace --all-features --summary-only
