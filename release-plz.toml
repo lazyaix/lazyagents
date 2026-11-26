@@ -1,0 +1,19 @@
+# release-plz configuration
+# See https://release-plz.dev/docs/config
+
+[workspace]
+# Keep crates.io publishing disabled until the first public crate release is ready.
+# When ready, configure crates.io Trusted Publishing (OIDC) and change this to `true`.
+publish = false
+
+# Automatically create immutable GitHub Releases and v* tags when the Release PR is merged.
+# If cargo-dist is adopted later for multi-platform binary releases, set `git_release_enable = false`
+# so cargo-dist publishes the immutable GitHub Release atomically with all binary assets.
+git_release_enable = true
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+
+# Disable cargo-semver-checks while the crate is binary-only; enable once library APIs exist.
+semver_check = false
+
+pr_labels = ["release"]

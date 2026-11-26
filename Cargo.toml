@@ -2,5 +2,15 @@
 name = "lazyagents"
 version = "0.1.0"
 edition = "2024"
+description = "LazyAgents — open-source AI agents toolkit in Rust"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/lazyaix/lazyagents"
+readme = "README.md"
 
 [dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
