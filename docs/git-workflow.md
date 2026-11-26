@@ -190,7 +190,7 @@ All CI workflows (`ci.yml`, `security.yml`, `pr-title.yml`) already declare the 
 
 ### C. Enabling `crates.io` Publishing (OIDC Trusted Publishing)
 1. Link `lazyaix/lazyagents` (`.github/workflows/release-plz.yml`) in `crates.io` Trusted Publishing settings (`id-token: write` is already declared on `release-plz-release`).
-2. Set `publish = true` in `release-plz.toml` (and `semver_check = true` once library APIs exist).
+2. Set `git_only = false` and `publish = true` in `release-plz.toml` (and `semver_check = true` once library APIs exist).
 
 ### D. Adding Multi-Platform Binary Distribution (`cargo-dist`)
 1. Run `cargo dist init` and pin all generated workflow actions to 40-char SHAs.

@@ -2,8 +2,9 @@
 # See https://release-plz.dev/docs/config
 
 [workspace]
-# Keep crates.io publishing disabled until the first public crate release is ready.
-# When ready, configure crates.io Trusted Publishing (OIDC) and change this to `true`.
+# Track versions from Git tags (v*) instead of querying crates.io while unpublished.
+# When ready for crates.io Trusted Publishing (OIDC), set `git_only = false` and `publish = true`.
+git_only = true
 publish = false
 
 # Automatically create immutable GitHub Releases and v* tags when the Release PR is merged.
