@@ -39,6 +39,9 @@ updates:
       - "dependencies"
       - "ci"
     groups:
-      github-actions:
+      github-actions-minor-patch:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
