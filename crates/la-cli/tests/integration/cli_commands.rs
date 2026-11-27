@@ -112,6 +112,23 @@ fn full_headless_ci_lifecycle_init_generate_check_diff_and_manage() {
     let inspected: serde_json::Value = serde_json::from_slice(&inspect_json.stdout).unwrap();
     assert_eq!(inspected["project"]["name"], "sample-app");
     assert_eq!(inspected["has_drift"], false);
+    assert!(inspected["budget"]["push_pull"]["pull_ratio_percent"].is_u64());
+    assert!(inspected["lethal_trifecta"]["overall_risk"].is_string());
+
+    let agbom_json = run_cli(root, &["inspect", "--agbom", "--format", "json"]).unwrap();
+    assert!(agbom_json.status.success());
+    let agbom: serde_json::Value = serde_json::from_slice(&agbom_json.stdout).unwrap();
+    assert_eq!(agbom["schema_version"], 1);
+    assert_eq!(agbom["project"], "sample-app");
+    assert!(
+        agbom["components"]
+            .as_array()
+            .is_some_and(|items| items.iter().any(|c| c["id"] == "db-migrate"))
+    );
+
+    let agbom_text = run_cli(root, &["inspect", "--agbom"]).unwrap();
+    assert!(agbom_text.status.success());
+    assert!(String::from_utf8_lossy(&agbom_text.stdout).contains("AgBOM v1"));
 
     // 5. Introduce external drift -> check fails with exit code 1, diff --exit-code exits 1
     fs::write(root.join("AGENTS.md"), "# manual drift\n").unwrap();

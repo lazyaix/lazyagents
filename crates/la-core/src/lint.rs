@@ -1,20 +1,28 @@
-//! Structured compliance, security, budget, drift, and GitHub Actions linter (`LA001`–`LA017`).
+//! Structured compliance, empirical context-lean, agentic supply-chain security, budget, drift,
+//! and GitHub Actions linter (`LA001`–`LA022`).
 
 mod antigravity;
+mod empirical;
 mod github;
+mod security;
 
 use core::fmt::{self, Write as _};
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::budget::{BudgetReport, analyze_budgets};
+use crate::budget::{BudgetReport, analyze_budgets_with_manifest};
 use crate::compiler::CompileOutput;
 use crate::diff::WritePlan;
 use crate::error::CoreError;
 use crate::manifest::{LintLevel, ProjectManifest};
 
-/// Canonical `lazyagents` lint rule identifier (`LA001`–`LA017`).
+pub use self::security::{
+    LethalTrifectaReport, LethalTrifectaRisk, TrifectaSubjectReport, analyze_lethal_trifecta,
+    effective_mcp_risk_surfaces,
+};
+
+/// Canonical `lazyagents` lint rule identifier (`LA001`–`LA022`).
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum LintCode {
     /// Plaintext secret or stateless GitHub token detected in tracked files.
@@ -68,6 +76,21 @@ pub enum LintCode {
     /// Governance mismatch between `[engineering]` and `.github/CODEOWNERS` or PR template.
     #[serde(rename = "LA017")]
     La017,
+    /// Empirical `AGENTS.md` lean-context advisory (bloated root, static tree, or KV-cache busting).
+    #[serde(rename = "LA018")]
+    La018,
+    /// Empirical `SKILL.md` quality advisory (oversized body, description cap/terseness, first-person voice).
+    #[serde(rename = "LA019")]
+    La019,
+    /// OWASP ASI01/ASI04 hidden Unicode/BiDi/Tag smuggling or high-risk prompt-injection pattern.
+    #[serde(rename = "LA020")]
+    La020,
+    /// OWASP ASI04 anti-Rug-Pull unpinned `npx`/`uvx` MCP package or non-SHA Git pack reference.
+    #[serde(rename = "LA021")]
+    La021,
+    /// Lethal Trifecta high-risk combination or Eager MCP tool-schema context-tax advisory.
+    #[serde(rename = "LA022")]
+    La022,
 }
 
 /// Diagnostic severity level emitted in [`LintReport`].
@@ -127,13 +150,15 @@ pub struct LintInputs<'a> {
     pub workspace_files: &'a BTreeMap<String, String>,
 }
 
-/// Complete compliance report combining diagnostics and Antigravity budget telemetry.
+/// Complete compliance report combining diagnostics, double-tier budgets, and security radar.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct LintReport {
     /// Ordered list of all emitted diagnostics.
     pub diagnostics: Vec<Diagnostic>,
-    /// Antigravity per-file byte and always-on token budget report.
+    /// Double-tier context budget and Push/Pull efficiency telemetry.
     pub budget: BudgetReport,
+    /// Static Lethal Trifecta risk analysis across MCP servers and subagents.
+    pub lethal_trifecta: LethalTrifectaReport,
 }
 
 impl LintCode {
@@ -158,6 +183,11 @@ impl LintCode {
             Self::La015 => "LA015",
             Self::La016 => "LA016",
             Self::La017 => "LA017",
+            Self::La018 => "LA018",
+            Self::La019 => "LA019",
+            Self::La020 => "LA020",
+            Self::La021 => "LA021",
+            Self::La022 => "LA022",
         }
     }
 }
@@ -266,23 +296,27 @@ impl LintReport {
     }
 }
 
-/// Runs the full `LA001`–`LA017` compliance, budget, secret, drift, and GitHub Actions linter.
+/// Runs the full `LA001`–`LA022` compliance, empirical budget, agentic supply-chain security,
+/// secret, drift, and GitHub Actions linter.
 #[must_use]
 pub fn lint_project(inputs: &LintInputs<'_>) -> LintReport {
-    let budget = analyze_budgets(
+    let budget = analyze_budgets_with_manifest(
         &inputs.compile_output.files,
         inputs.workspace_files,
-        inputs.manifest.lint.rule_max_bytes,
-        inputs.manifest.lint.always_on_max_tokens,
+        inputs.manifest,
     );
+    let lethal_trifecta = analyze_lethal_trifecta(inputs.manifest);
     let mut diagnostics = Vec::new();
 
     antigravity::run_antigravity_checks(inputs, &budget, &mut diagnostics);
     github::run_github_checks(inputs, &mut diagnostics);
+    empirical::run_empirical_checks(inputs, &budget, &mut diagnostics);
+    security::run_security_checks(inputs, &budget, &lethal_trifecta, &mut diagnostics);
 
     LintReport {
         diagnostics,
         budget,
+        lethal_trifecta,
     }
 }
 

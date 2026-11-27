@@ -577,13 +577,13 @@ fn check_drift_la013(inputs: &LintInputs<'_>, diagnostics: &mut Vec<Diagnostic>)
     }
 }
 
-fn extract_yaml_frontmatter(content: &str) -> Option<&str> {
+pub(super) fn extract_yaml_frontmatter(content: &str) -> Option<&str> {
     let rest = content.strip_prefix("---\n")?;
     let end = rest.find("\n---")?;
     rest.get(..end)
 }
 
-fn parse_frontmatter_scalar(fm: &str, key: &str) -> Option<String> {
+pub(super) fn parse_frontmatter_scalar(fm: &str, key: &str) -> Option<String> {
     let prefix = format!("{key}:");
     let lines: Vec<&str> = fm.lines().collect();
     for (idx, line) in lines.iter().enumerate() {

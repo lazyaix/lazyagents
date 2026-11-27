@@ -196,13 +196,8 @@ impl WorkspaceSnapshot {
             },
             lint_report: LintReport {
                 diagnostics: Vec::new(),
-                budget: la_core::BudgetReport {
-                    files: Vec::new(),
-                    always_on_tokens: 0,
-                    max_always_on_tokens: la_core::manifest::DEFAULT_ALWAYS_ON_MAX_TOKENS,
-                    always_on_status: la_core::BudgetStatus::Ok,
-                    offload_suggestions: Vec::new(),
-                },
+                budget: la_core::BudgetReport::default(),
+                lethal_trifecta: la_core::LethalTrifectaReport::default(),
             },
             compile_error: None,
         };
