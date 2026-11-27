@@ -1,0 +1,38 @@
+---
+source: crates/la-tui/tests/integration/resource_studio.rs
+expression: rendered
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:0%  TOK:195/20000 │ ✕ 7  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+╭ ◆ DECK ──────────────╮┏ ◈ GOVERNANCE HEALTH ━━━━━┓╭ ⊞ STUDIO TELEMETRY ────────────╮╭ Preview   Diff   Lint   Budget ╮
+│ OVERVIEW             │┃                          ┃│§ 1  ★ 0  ◎ 0  ⚡  0  ⌘ 1        ││{                               │
+│▸ ◈ HUD Dashboard     │┃                          ┃│Compiled Outputs: 7  │  ✕ 7  ▲ 0││  "lazyagents-git-guard": {     │
+│                      │┃         0 / 100          ┃│Targets: Antigravity [ACTIVE]   ││    "PreToolUse": [             │
+│ GOVERNANCE           │┃                          ┃│                                ││      {                         │
+│  ❖ Engineering      ┏ ◆ COMMAND PALETTE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓oks": [              │
+│  ❖ GitHub Audit     ┃ > audit█                                                                 ┃▓▓                   │
+│                     ┃                                                                          ┃▓▓command":          │
+│ ANTIGRAVITY         ┃ ▸ [NAV    ] GitHub Audit  <3>                                            ┃▓▓ook eval           │
+│  ▤ AGENTS.md (1)    ┃   [EDIT   ] Open in External $VISUAL/$EDITOR  <e>                        ┃▓▓                   │
+│  § Rules (1)        ┃   [AUDIT  ] Run Live Read-Only GitHub Audit  <r>                         ┃▓▓timeout": 15,      │
+│  ★ Skills (0)       ┃                                                                          ┃▓▓type": "command"   │
+│  ◎ Subagents (0)    ┃                                                                          ┃▓▓                   │
+│  ⚡  Hooks & Lab (0) ┃                                                                          ┃▓▓                   │
+│  ⌘ MCP Servers (1)  ┃                                                                          ┃▓▓her": "run_command"│
+│  ≡ Manifests (3)    ┃                                                                          ┃▓▓                   │
+│  ⊞ Plugins (1)      ┃                                                                          ┃▓▓                   │
+│                     ┃                                                                          ┃▓▓                   │
+│ DEPLOY              ┃                                                                          ┃▓▓-secret-guard": {  │
+│  ± Sync & Diff (7)  ┃                                                                          ┃▓▓se": [             │
+│                     ┃                                                                          ┃▓▓                   │
+│                     ┃                                                                          ┃▓▓s": [              │
+│                     ┃                                                                          ┃▓▓                   │
+│                     ┃                                                                          ┃▓▓command":          │
+│                     ┃                                                                          ┃▓▓ook eval           │
+│                     ┃ Type to fuzzy filter   Up/Down Select   Enter Run   Esc Close            ┃▓▓,                  │
+│                     ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓timeout": 15,      │
+│                      │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓type": "command"   │
+│                      ││Root: /workspace/lazyagents ││GitHub Repo: -                ││          }                     │
+│                      ││                            ││                              ││        ],                      │
+│                      ││                            ││                              ││        "matcher":              │
+╰──────────────────────╯╰────────────────────────────╯╰──────────────────────────────╯╰────────────────────────────────╯
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs  ? Help  q Quit

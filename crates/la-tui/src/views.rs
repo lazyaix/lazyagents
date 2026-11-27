@@ -2,6 +2,8 @@
 
 mod dashboard;
 mod governance;
+mod modals;
+mod resources;
 mod splash;
 
 use core::time::Duration;
@@ -92,11 +94,19 @@ pub fn render_studio(state: &mut AppState, frame: &mut Frame<'_>, dt: Duration) 
         render_toast(state, frame, area, &toast);
     }
 
-    let focused_rect = match state.focus {
-        FocusPane::Rail if show_rail => Some(rail_area),
-        FocusPane::Inspector if show_inspector => Some(inspector_area),
-        FocusPane::LogsDrawer if state.visibility.logs_drawer => Some(logs_area),
-        _ => Some(workspace_area),
+    if let Some(modal_kind) = state.modal {
+        modals::render(state, frame, area, modal_kind);
+    }
+
+    let focused_rect = if state.modal.is_some() {
+        None
+    } else {
+        match state.focus {
+            FocusPane::Rail if show_rail => Some(rail_area),
+            FocusPane::Inspector if show_inspector => Some(inspector_area),
+            FocusPane::LogsDrawer if state.visibility.logs_drawer => Some(logs_area),
+            _ => Some(workspace_area),
+        }
     };
 
     state
@@ -350,138 +360,17 @@ fn rail_item_line(
     Line::from(Span::styled(text, style))
 }
 
-fn render_primary_workspace(state: &AppState, frame: &mut Frame<'_>, area: Rect) {
+fn render_primary_workspace(state: &mut AppState, frame: &mut Frame<'_>, area: Rect) {
+    if state.inline_edit.is_some() {
+        resources::render(state, frame, area);
+        return;
+    }
     match state.nav {
         NavSection::Dashboard => dashboard::render(state, frame, area),
         NavSection::Engineering => governance::render_engineering(state, frame, area),
         NavSection::GitHubAudit => governance::render_github_audit(state, frame, area),
-        _ => render_resource_summary_deck(state, frame, area),
+        _ => resources::render(state, frame, area),
     }
-}
-
-fn render_resource_summary_deck(state: &AppState, frame: &mut Frame<'_>, area: Rect) {
-    let theme = &state.theme;
-    let i18n = state.i18n();
-    let focused = state.focus == FocusPane::Workspace;
-    let title = format!(" {} {} ", state.nav.glyph(theme), state.nav.label(i18n));
-    let m = &state.workspace.manifest;
-
-    let items: Vec<(String, String)> = match state.nav {
-        NavSection::Instructions => m
-            .instructions
-            .iter()
-            .map(|inst| {
-                (
-                    inst.output.clone(),
-                    format!(
-                        "{} sections (auto_probe={})",
-                        inst.sections.len(),
-                        inst.auto_probe
-                    ),
-                )
-            })
-            .collect(),
-        NavSection::Rules => m
-            .rules
-            .iter()
-            .map(|r| {
-                (
-                    r.id.to_string(),
-                    format!("{:?}  {}", r.trigger, r.globs.join(", ")),
-                )
-            })
-            .collect(),
-        NavSection::Skills => m
-            .skills
-            .iter()
-            .map(|s| (s.name.to_string(), s.source.clone()))
-            .collect(),
-        NavSection::Subagents => m
-            .agents
-            .iter()
-            .map(|a| {
-                (
-                    a.name.to_string(),
-                    format!("{:?} — {}", a.model, a.description),
-                )
-            })
-            .collect(),
-        NavSection::Hooks => m
-            .hooks
-            .iter()
-            .map(|h| {
-                (
-                    h.name.to_string(),
-                    format!("{:?} -> {}", h.event, h.command),
-                )
-            })
-            .collect(),
-        NavSection::McpServers => m
-            .mcp_servers
-            .iter()
-            .map(|s| (s.name.to_string(), format!("enabled={}", s.enabled)))
-            .collect(),
-        NavSection::Manifests => vec![
-            (
-                "skills.json".to_owned(),
-                format!("{} entries", m.manifests.skills.entries.len()),
-            ),
-            (
-                "rules.json".to_owned(),
-                format!("{} entries", m.manifests.rules.entries.len()),
-            ),
-            (
-                "plugins.json".to_owned(),
-                format!("{} entries", m.manifests.plugins.entries.len()),
-            ),
-        ],
-        NavSection::Plugins => m
-            .plugins
-            .iter()
-            .map(|p| (p.name.to_string(), p.description.clone()))
-            .collect(),
-        NavSection::SyncDiff => state
-            .workspace
-            .write_plan
-            .files
-            .iter()
-            .map(|f| (f.path.clone(), format!("{:?}", f.action)))
-            .collect(),
-        _ => Vec::new(),
-    };
-
-    let mut lines = Vec::new();
-    if items.is_empty() {
-        lines.push(Line::from(Span::styled(
-            i18n.pick(
-                "No items configured yet. Press `e` to edit `.lazyagents/lazyagents.toml`.",
-                "暂未配置条目。按 `e` 打开外部编辑器编辑清单。",
-            ),
-            theme.muted_style(),
-        )));
-    } else {
-        for (idx, (name, detail)) in items.into_iter().enumerate() {
-            let selected = idx == state.list_index;
-            let marker = if selected { theme.glyphs.cursor } else { " " };
-            let style = if selected {
-                theme.selection_style(focused)
-            } else {
-                Style::default().fg(theme.text_primary)
-            };
-            lines.push(Line::from(vec![
-                Span::styled(format!(" {marker} {name}  "), style),
-                Span::styled(detail, theme.muted_style()),
-            ]));
-        }
-    }
-
-    let block = pane_block(title, focused, theme);
-    frame.render_widget(
-        Paragraph::new(lines)
-            .block(block)
-            .wrap(Wrap { trim: false }),
-        area,
-    );
 }
 
 fn render_inspector_pod(state: &mut AppState, frame: &mut Frame<'_>, area: Rect) {
