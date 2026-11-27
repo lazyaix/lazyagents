@@ -8,6 +8,7 @@ mod config;
 pub mod editor;
 pub mod effects;
 mod error;
+pub mod form;
 pub mod highlight;
 pub mod i18n;
 pub mod media;
@@ -26,6 +27,10 @@ pub use crate::config::{
 pub use crate::editor::{EditorAction, EditorMode, TextEditor};
 pub use crate::effects::{EffectSlot, StudioEffects};
 pub use crate::error::TuiError;
+pub use crate::form::{
+    FieldKind, FieldValidator, FormAction, FormField, FormOutcome, FormTab, KeyValueEntry,
+    KeyValueListState, ModalFormState, StringListState, TextInputState,
+};
 pub use crate::highlight::{
     PreviewRenderer, PreviewSyntax, SideBySideRow, render_side_by_side_diff,
     render_unified_diff_styled,
@@ -37,10 +42,11 @@ pub use crate::protocol::{
     TerminalCapabilities, TerminalEnvHints, TransportTier,
 };
 pub use crate::state::{
-    AppState, AuditCheckView, AuditStatusView, CommandPaletteState, DeckVisibility, DiffStyle,
-    FocusPane, GitHubAuditSnapshot, GovernanceDomain, HookPlaygroundState, HookVerdictView,
-    InitWizardState, InlineEditState, InspectorTab, LogEntry, LogLevel, ModalKind, NavSection,
-    ToastLevel, WorkspaceSnapshot,
+    AppState, AuditCheckView, AuditStatusView, CatalogCategory, CatalogEntryKind, CatalogItem,
+    CatalogPickerState, CommandPaletteState, ConfirmDeleteState, DeckVisibility, DeleteTarget,
+    DiffStyle, FocusPane, GitHubAuditSnapshot, GovernanceDomain, HookPlaygroundState,
+    HookVerdictView, InitWizardState, InlineEditState, InspectorTab, LogEntry, LogLevel, ModalKind,
+    NavSection, ToastLevel, WorkspaceSnapshot,
 };
 pub use crate::status::{budget_status_color, policy_decision_badge, status_label};
 pub use crate::theme::{GlyphPalette, ResolvedTheme, Theme};

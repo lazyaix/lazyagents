@@ -99,6 +99,9 @@ pub(crate) fn spawn_studio_command(
         StudioCommand::SaveSourceFile { rel_path, content } => {
             spawn_save_source(ctx, tracker, rel_path, content);
         }
+        StudioCommand::DeleteSourceFile { rel_path } => {
+            spawn_delete_source(ctx, tracker, rel_path);
+        }
         StudioCommand::ApplySync { force } => spawn_apply_sync(ctx, tracker, force),
         StudioCommand::InitializeWorkspace {
             git_mode,
@@ -164,6 +167,36 @@ fn spawn_save_source(ctx: SpawnCtx, tracker: &TaskTracker, rel_path: String, con
                 .await;
         } else {
             info!(path = %rel_path, "saved .lazyagents source file");
+        }
+    });
+}
+
+fn spawn_delete_source(ctx: SpawnCtx, tracker: &TaskTracker, rel_path: String) {
+    tracker.spawn(async move {
+        if ctx.cancel.is_cancelled() || rel_path.contains("..") {
+            return;
+        }
+        let target = ctx.root.join(".lazyagents").join(&rel_path);
+        let res = tokio::task::spawn_blocking(move || {
+            if target.is_dir() {
+                fs::remove_dir_all(&target)
+            } else if target.is_file() {
+                fs::remove_file(&target)
+            } else {
+                Ok(())
+            }
+        })
+        .await;
+        if let Ok(Err(err)) = res {
+            let _ = ctx
+                .tx
+                .send(Action::Notify {
+                    level: ToastLevel::Error,
+                    message: err.to_string(),
+                })
+                .await;
+        } else {
+            info!(path = %rel_path, "purged .lazyagents source file");
         }
     });
 }

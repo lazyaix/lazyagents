@@ -1,0 +1,28 @@
+---
+source: crates/la-tui/tests/integration/form_modals.rs
+expression: rendered_ascii
+---
+ * LAZYAGENTS  lazyagents |  DRIFT  HP:23%  TOK:0/20000 | X 4  ! 0 | Cyber Neon
+┌ # GOVERNANCE HEALTH ─────────────┐┌ P STUDIO TELEMETRY ──────────────────────┐
+│████████                          ││R 1  S 0  @ 0  H 0  M 0                   │
+│████████ ┌ * Edit Conditional Rule / 编 辑 规 则  ──────────────────────┐         │
+│████████ │  General   Antigravity [antigravity]    Project scope    │         │
+│████████ │                                                          │         │
+└─────────│ > Rule ID            rust-safety BAD!                    │─────────┘
+┌ H CONTEX│     X invalid resource identifier `rust-safety BAD!`:    │─────────┐
+│100%│    │only ASCII alphanumerics and `-`, `_`, `.`, `:`, `/` are  │         │
+│80% │    │allowed                                                   │         │
+│0%  │••••│   Description        赛 博 安 全 基 线  🚀                      │•••••••••│
+│    └────│   Enabled             [x] ON                             │─────────│
+│    0    │   Trigger             < glob >                           │  1 files│
+└─────────│   Globs               crates/**/*.rs   docs/**/*.md      │─────────┘
+OK All ins│                                                          │/
+20k-token │                                                          │
+          │                                                          │
+┌ L ACTIVE│ X invalid resource identifier `rust-safety BAD!`: only   │─────────┐
+│Layers: p│ASCII alphanumerics and `-`, `_`, `.`, `:`, `/` are       │         │
+│Git Mode:│ Tab/Up/Down Field   Alt+Left/Right Tab   Enter Activat...│         │
+│Root: /wo└──────────────────────────────────────────────────────────┘         │
+│                                    ││                                        │
+└────────────────────────────────────┘└────────────────────────────────────────┘
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Lo...

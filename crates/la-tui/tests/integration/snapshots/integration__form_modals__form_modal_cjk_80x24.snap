@@ -1,0 +1,28 @@
+---
+source: crates/la-tui/tests/integration/form_modals.rs
+expression: rendered_80
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:23%  TOK:0/20000 │ ✕ 4  ▲ 0 │ Cyber Neon
+┏ ◈ GOVERNANCE HEALTH ━━━━━━━━━━━━━┓╭ ⊞ STUDIO TELEMETRY ──────────────────────╮
+┃████████                          ┃│§ 1  ★ 0  ◎ 0  ⚡  0  ⌘ 0                  │
+┃████████ ┏ ◆ Edit Conditional Rule / 编 辑 规 则  ━━━━━━━━━━━━━━━━━━━━━━┓         │
+┃████████ ┃  General   Antigravity [antigravity]    Project scope    ┃▓▓       │
+┃████████ ┃                                                          ┃▓▓       │
+┗━━━━━━━━━┃   Rule ID            rust-safety                         ┃▓▓───────╯
+┏ ⚡  CONTE┃ ▸ Description        赛 博 安 全 基 线  🚀                      ┃▓▓━━━━━━━┓
+┃100%│    ┃   Enabled             ● ON                               ┃▓▓       ┃
+┃80% │    ┃   Trigger             < glob >                           ┃▓▓       ┃
+┃0%  │⣀⣀⣀⣀┃   Globs               crates/**/*.rs   docs/**/*.md      ┃▓▓⣀⣀⣀⣀⣀⣀⣀┃
+┃    └────┃                                                          ┃▓▓───────┃
+┃    0    ┃                                                          ┃▓▓1 files┃
+┗━━━━━━━━━┃                                                          ┃▓▓━━━━━━━┛
+✓ All inst┃                                                          ┃▓▓0k-token
+context bu┃                                                          ┃▓▓
+          ┃                                                          ┃▓▓
+╭ ⛨ ACTIVE┃                                                          ┃▓▓───────╮
+│Layers: p┃                                                          ┃▓▓       │
+│Git Mode:┃ Tab/Up/Down Field   Alt+Left/Right Tab   Enter Activate/…┃▓▓       │
+│Root: /wo┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓       │
+│           ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓       │
+╰────────────────────────────────────╯╰────────────────────────────────────────╯
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs…

@@ -11,6 +11,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
 
 use crate::state::{AppState, ModalKind};
+use crate::views::form_modal;
 
 /// Renders the active floating modal centered over a `TachyonFX`-dimmed background scrim.
 pub(super) fn render(state: &AppState, frame: &mut Frame<'_>, viewport: Rect, kind: ModalKind) {
@@ -23,6 +24,9 @@ pub(super) fn render(state: &AppState, frame: &mut Frame<'_>, viewport: Rect, ki
         ModalKind::InitWizard => (68, 60),
         ModalKind::ConflictGuard => (66, 54),
         ModalKind::Help => (72, 68),
+        ModalKind::FormModal => (76, 74),
+        ModalKind::ConfirmDelete => (64, 38),
+        ModalKind::CatalogPicker => (76, 70),
     };
     let modal_area = centered_rect(viewport, pct_w, pct_h);
     frame.render_widget(Clear, modal_area);
@@ -32,6 +36,13 @@ pub(super) fn render(state: &AppState, frame: &mut Frame<'_>, viewport: Rect, ki
         ModalKind::InitWizard => render_init_wizard(state, frame, modal_area),
         ModalKind::ConflictGuard => render_conflict_guard(state, frame, modal_area),
         ModalKind::Help => render_help_modal(state, frame, modal_area),
+        ModalKind::FormModal => form_modal::render_form_modal(state, frame, modal_area),
+        ModalKind::ConfirmDelete => {
+            form_modal::render_delete_confirm_modal(state, frame, modal_area);
+        }
+        ModalKind::CatalogPicker => {
+            form_modal::render_catalog_picker_modal(state, frame, modal_area);
+        }
     }
 }
 
@@ -392,7 +403,7 @@ fn render_help_modal(state: &AppState, frame: &mut Frame<'_>, area: Rect) {
     frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
-fn shadowed_modal_block(
+pub(super) fn shadowed_modal_block(
     title: String,
     border_color: ratatui::style::Color,
     theme: &crate::theme::Theme,
