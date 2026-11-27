@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use la_core::compiler::GeneratedFile;
 use la_core::engineering::{ProtectedPathEntry, VerifyCommand};
-use la_core::manifest::{McpServerSpec, McpTransport, PluginSpec};
+use la_core::manifest::{McpServerSpec, McpToolLoading, McpTransport, PluginSpec};
 use la_core::{
     CompileInputs, CompileOutput, DiagnosticSeverity, HookEvalContext, HookGuardKind, HookProtocol,
     KebabName, LintCode, LintInputs, PolicyDecision, ProjectFacts, ProjectManifest, ResourceId,
@@ -95,6 +95,10 @@ fn detects_antigravity_spec_pitfalls_la001_through_la013() {
             )]),
         },
         variables: Vec::new(),
+        tool_loading: McpToolLoading::Eager,
+        allowed_tools: Vec::new(),
+        denied_tools: Vec::new(),
+        risk_surfaces: Vec::new(),
     });
     manifest.mcp_servers.push(McpServerSpec {
         name: ResourceId::parse("plugin-stdio").unwrap(),
@@ -106,6 +110,10 @@ fn detects_antigravity_spec_pitfalls_la001_through_la013() {
             cwd: Some("./relative".to_owned()),
         },
         variables: Vec::new(),
+        tool_loading: McpToolLoading::Eager,
+        allowed_tools: Vec::new(),
+        denied_tools: Vec::new(),
+        risk_surfaces: Vec::new(),
     });
     manifest.plugins.push(PluginSpec {
         name: KebabName::parse("bad-plugin").unwrap(),

@@ -70,7 +70,7 @@ pub(super) fn compile_plugins(
         emit_plugin_rules(plugin, manifest, inputs, &base, out)?;
         emit_plugin_skills(plugin, manifest, inputs, &base, out)?;
         emit_plugin_agents(plugin, manifest, inputs, &base, out)?;
-        emit_plugin_hooks(plugin, effective_hooks, &base, out)?;
+        emit_plugin_hooks(plugin, effective_hooks, &base, out, diagnostics)?;
         emit_plugin_mcp(plugin, effective_mcp, &base, out, diagnostics)?;
     }
     Ok(())
@@ -186,6 +186,7 @@ fn emit_plugin_hooks(
     effective_hooks: &[HookSpec],
     base: &str,
     out: &mut Vec<GeneratedFile>,
+    diagnostics: &mut Vec<CompatibilityDiagnostic>,
 ) -> Result<(), CoreError> {
     if plugin.include_hooks.is_empty() {
         return Ok(());
@@ -203,11 +204,12 @@ fn emit_plugin_hooks(
             })?;
         selected.push(hook.clone());
     }
-    let json = render_hooks_json(&selected)?;
-    out.push(GeneratedFile::whole_file(
-        format!("{base}/hooks.json"),
-        json,
-    ));
+    if let Some(json) = render_hooks_json(&selected, diagnostics)? {
+        out.push(GeneratedFile::whole_file(
+            format!("{base}/hooks.json"),
+            json,
+        ));
+    }
     Ok(())
 }
 

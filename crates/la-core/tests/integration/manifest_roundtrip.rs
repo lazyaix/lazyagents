@@ -1,15 +1,20 @@
 //! Full manifest TOML roundtrip and secret-scanning black-box tests.
 
+use core::assert_matches;
+
 use la_core::engineering::{
-    AiDisclosureMode, BranchingModel, ConventionalCommitMode, GitHubScaffold, MergeStrategy,
-    ReleaseTool, StopHookMode,
+    AiDisclosureMode, BranchingModel, ConventionalCommitMode, DEFAULT_FORMAT_TIMEOUT_MS,
+    GitHubScaffold, MergeStrategy, ReleaseTool, StopHookMode,
 };
 use la_core::manifest::{
-    GitOutputMode, HookMatcher, InstructionFileKind, InstructionSection, LintLevel, McpTransport,
+    DEFAULT_RECOMMENDED_ALWAYS_ON_TOKENS, DEFAULT_RECOMMENDED_ROOT_BYTES,
+    DEFAULT_RECOMMENDED_SKILL_MAX_LINES, GitOutputMode, HookMatcher, InstructionFileKind,
+    InstructionSection, LintLevel, McpAuthMode, McpRiskSurface, McpToolLoading, McpTransport,
     ModelTier, PackSource, RuleTrigger, TemplateLang,
 };
 use la_core::{
-    HookEvent, PolicyDecision, ProjectManifest, SecretKind, ToolCapability, scan_secrets,
+    CompatibilitySeverity, CompileInputs, CoreError, HookEvent, PolicyDecision, ProjectManifest,
+    SecretKind, TargetKind, TargetOutputStrategy, ToolCapability, compile_all, scan_secrets,
 };
 
 const FULL_MANIFEST_TOML: &str = r###"
@@ -282,13 +287,264 @@ fn full_manifest_parses_roundtrips_and_passes_secret_scan() {
     );
     assert!(matches!(
         &parsed.mcp_servers[0].transport,
-        McpTransport::StreamableHttp { url, .. } if url == "https://api.githubcopilot.com/mcp/"
+        McpTransport::StreamableHttp {
+            url,
+            auth: McpAuthMode::HeaderVar,
+            ..
+        } if url == "https://api.githubcopilot.com/mcp/"
     ));
+    assert_eq!(parsed.mcp_servers[0].tool_loading, McpToolLoading::Eager);
+    assert!(!parsed.targets.cursor.enabled);
+    assert_eq!(
+        parsed.targets.claude_code.instruction_strategy,
+        TargetOutputStrategy::Shared
+    );
+    assert!(!parsed.engineering.format.enabled);
+    assert!(!parsed.engineering.shell_guard.is_enabled());
     assert_eq!(parsed.lint.compatibility_loss, LintLevel::Warn);
+    assert_eq!(
+        parsed.lint.recommended_root_bytes,
+        DEFAULT_RECOMMENDED_ROOT_BYTES
+    );
+    assert_eq!(
+        parsed.lint.recommended_always_on_tokens,
+        DEFAULT_RECOMMENDED_ALWAYS_ON_TOKENS
+    );
+    assert_eq!(
+        parsed.lint.recommended_skill_max_lines,
+        DEFAULT_RECOMMENDED_SKILL_MAX_LINES
+    );
+    assert_eq!(parsed.lint.context_lean, LintLevel::Warn);
+    assert_eq!(parsed.lint.skill_quality, LintLevel::Warn);
+    assert_eq!(parsed.lint.prompt_injection, LintLevel::Error);
+    assert_eq!(parsed.lint.supply_chain_pinning, LintLevel::Warn);
+    assert_eq!(parsed.lint.risk_and_context_tax, LintLevel::Warn);
 
     let reserialized = parsed.to_toml_pretty().unwrap();
     let reparsed = ProjectManifest::from_toml_str(&reserialized).unwrap();
     assert_eq!(parsed, reparsed);
+}
+
+#[test]
+fn m4_extended_ir_fields_roundtrip_under_schema_v1() {
+    let raw = r#"
+schema_version = 1
+
+[project]
+name = "lazyagents-m4"
+
+[targets.antigravity]
+enabled = true
+
+[targets.claude_code]
+enabled = true
+instruction_strategy = "shared"
+
+[targets.cursor]
+enabled = true
+instruction_strategy = "standalone"
+
+[engineering.format]
+enabled = true
+
+[[engineering.format.rules]]
+id = "rustfmt"
+glob = "**/*.rs"
+cmd = ["rustfmt", "--edition", "2024", "{path}"]
+
+[engineering.shell_guard]
+enabled = true
+block_destructive_rm = "deny"
+block_pipe_to_shell = "deny"
+block_credential_reads = "force_ask"
+extra_deny_patterns = ["(?i)terraform\\s+destroy"]
+
+[[hooks]]
+name = "compact-reminder"
+event = "pre_compact"
+command = "lazyagents hook eval compact-guard"
+
+[[hooks]]
+name = "prompt-audit"
+event = "user_prompt_submit"
+command = "./hooks/prompt-audit.sh"
+
+[[hooks]]
+name = "session-cleanup"
+event = "session_end"
+command = "./hooks/cleanup.sh"
+
+[[mcp_servers]]
+name = "cloudflare"
+transport = "streamable_http"
+url = "https://mcp.cloudflare.com/mcp"
+auth = "oauth"
+tool_loading = "code_mode"
+allowed_tools = ["search", "execute"]
+denied_tools = ["delete_account"]
+risk_surfaces = ["untrusted_input", "private_data", "external_egress"]
+
+[lint]
+recommended_root_bytes = 6144
+recommended_always_on_tokens = 1500
+recommended_skill_max_lines = 400
+context_lean = "error"
+skill_quality = "warn"
+prompt_injection = "error"
+supply_chain_pinning = "error"
+risk_and_context_tax = "off"
+"#;
+
+    let parsed = ProjectManifest::from_toml_str(raw).unwrap();
+    assert!(parsed.targets.cursor.enabled);
+    assert_eq!(
+        parsed.targets.cursor.instruction_strategy,
+        TargetOutputStrategy::Standalone
+    );
+    assert_eq!(
+        parsed.targets.claude_code.instruction_strategy,
+        TargetOutputStrategy::Shared
+    );
+    assert!(parsed.engineering.format.enabled);
+    assert_eq!(parsed.engineering.format.rules.len(), 1);
+    assert_eq!(
+        parsed.engineering.format.rules[0].timeout_ms,
+        DEFAULT_FORMAT_TIMEOUT_MS
+    );
+    assert!(parsed.engineering.shell_guard.is_enabled());
+    assert_eq!(
+        parsed.engineering.shell_guard.block_credential_reads,
+        PolicyDecision::ForceAsk
+    );
+    assert_eq!(parsed.hooks[0].event, HookEvent::PreCompact);
+    assert_eq!(parsed.hooks[1].event, HookEvent::UserPromptSubmit);
+    assert_eq!(parsed.hooks[2].event, HookEvent::SessionEnd);
+    assert!(matches!(
+        &parsed.mcp_servers[0].transport,
+        McpTransport::StreamableHttp {
+            url,
+            auth: McpAuthMode::OAuth,
+            ..
+        } if url == "https://mcp.cloudflare.com/mcp"
+    ));
+    assert_eq!(parsed.mcp_servers[0].tool_loading, McpToolLoading::CodeMode);
+    assert_eq!(
+        parsed.mcp_servers[0].allowed_tools,
+        vec!["search", "execute"]
+    );
+    assert_eq!(parsed.mcp_servers[0].denied_tools, vec!["delete_account"]);
+    assert_eq!(
+        parsed.mcp_servers[0].risk_surfaces,
+        vec![
+            McpRiskSurface::UntrustedInput,
+            McpRiskSurface::PrivateData,
+            McpRiskSurface::ExternalEgress,
+        ]
+    );
+    assert_eq!(parsed.lint.recommended_root_bytes, 6144);
+    assert_eq!(parsed.lint.context_lean, LintLevel::Error);
+    assert_eq!(parsed.lint.risk_and_context_tax, LintLevel::Off);
+
+    let reserialized = parsed.to_toml_pretty().unwrap();
+    let reparsed = ProjectManifest::from_toml_str(&reserialized).unwrap();
+    assert_eq!(parsed, reparsed);
+}
+
+#[test]
+fn rejects_invalid_format_rules_shell_guard_regex_and_conflicting_mcp_tools() {
+    let conflicting_mcp = r#"
+schema_version = 1
+[project]
+name = "demo"
+[[mcp_servers]]
+name = "gh"
+transport = "streamable_http"
+url = "https://api.githubcopilot.com/mcp/"
+auth = "oauth"
+allowed_tools = ["create_issue"]
+denied_tools = ["create_issue"]
+"#;
+    assert_matches!(
+        ProjectManifest::from_toml_str(conflicting_mcp),
+        Err(CoreError::InvalidManifest { .. })
+    );
+
+    let bad_format_cmd = r#"
+schema_version = 1
+[project]
+name = "demo"
+[engineering.format]
+enabled = true
+[[engineering.format.rules]]
+id = "empty"
+glob = "**/*.rs"
+cmd = []
+"#;
+    assert_matches!(
+        ProjectManifest::from_toml_str(bad_format_cmd),
+        Err(CoreError::InvalidManifest { .. })
+    );
+
+    let bad_format_glob = r#"
+schema_version = 1
+[project]
+name = "demo"
+[engineering.format]
+enabled = true
+[[engineering.format.rules]]
+id = "bad-glob"
+glob = "[unclosed"
+cmd = ["rustfmt", "{path}"]
+"#;
+    assert_matches!(
+        ProjectManifest::from_toml_str(bad_format_glob),
+        Err(CoreError::InvalidManifest { .. })
+    );
+
+    let bad_shell_regex = r#"
+schema_version = 1
+[project]
+name = "demo"
+[engineering.shell_guard]
+enabled = true
+extra_deny_patterns = ["(unclosed"]
+"#;
+    assert_matches!(
+        ProjectManifest::from_toml_str(bad_shell_regex),
+        Err(CoreError::InvalidManifest { .. })
+    );
+}
+
+#[test]
+fn antigravity_compiler_emits_compatibility_warning_for_non_native_hook_events() {
+    let raw = r#"
+schema_version = 1
+[project]
+name = "demo"
+[engineering.git.guardrails]
+block_push_default_branch = "allow"
+block_force_push = "allow"
+block_destructive_reset = "allow"
+guard_broad_staging = "allow"
+[engineering.verify]
+stop_hook_mode = "off"
+[lint]
+secrets = "off"
+[[hooks]]
+name = "compact-reminder"
+event = "pre_compact"
+command = "lazyagents hook eval compact-guard"
+"#;
+    let manifest = ProjectManifest::from_toml_str(raw).unwrap();
+    let output = compile_all(&manifest, &CompileInputs::default()).unwrap();
+
+    assert!(output.files.iter().all(|f| f.path != ".agents/hooks.json"));
+    assert!(output.diagnostics.iter().any(|d| {
+        d.target == TargetKind::Antigravity
+            && d.severity == CompatibilitySeverity::Warning
+            && d.subject == "hook:compact-reminder"
+            && d.message.contains("PreCompact")
+    }));
 }
 
 #[test]

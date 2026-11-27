@@ -45,8 +45,9 @@ impl AntigravityCompiler {
         compile_subagents(manifest, inputs, &mut files)?;
 
         let effective_hooks = collect_effective_hooks(manifest);
-        if !effective_hooks.is_empty() {
-            let json = render_hooks_json(&effective_hooks)?;
+        if !effective_hooks.is_empty()
+            && let Some(json) = render_hooks_json(&effective_hooks, &mut diagnostics)?
+        {
             files.push(GeneratedFile::whole_file(".agents/hooks.json", json));
         }
 

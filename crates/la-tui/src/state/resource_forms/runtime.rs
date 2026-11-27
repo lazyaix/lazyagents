@@ -3,7 +3,9 @@
 
 use std::collections::BTreeMap;
 
-use la_core::manifest::{HookMatcher, HookSpec, McpServerSpec, McpTransport, McpVariable};
+use la_core::manifest::{
+    HookMatcher, HookSpec, McpAuthMode, McpServerSpec, McpToolLoading, McpTransport, McpVariable,
+};
 use la_core::{HookEvent, ProjectManifest, ResourceId, TargetKind};
 
 use crate::action::StudioCommand;
@@ -15,13 +17,16 @@ use crate::state::WorkspaceSnapshot;
 
 use super::{FormTarget, capability_label, opt_text, parse_capability};
 
-const HOOK_EVENTS: [&str; 6] = [
+const HOOK_EVENTS: [&str; 9] = [
     "SessionStart",
+    "UserPromptSubmit",
+    "PreInvocation",
     "PreToolUse",
     "PostToolUse",
-    "PreInvocation",
     "PostInvocation",
+    "PreCompact",
     "Stop",
+    "SessionEnd",
 ];
 
 struct McpFormDefaults {
@@ -40,13 +45,16 @@ pub(super) fn build_hook_form(
     i18n: I18n,
 ) -> (ModalFormState, FormTarget) {
     let existing = edit_idx.and_then(|idx| manifest.hooks.get(idx));
-    let event_idx = existing.map_or(1, |h| match h.event {
+    let event_idx = existing.map_or(3, |h| match h.event {
         HookEvent::SessionStart => 0,
-        HookEvent::PreToolUse => 1,
-        HookEvent::PostToolUse => 2,
-        HookEvent::PreInvocation => 3,
-        HookEvent::PostInvocation => 4,
-        HookEvent::Stop => 5,
+        HookEvent::UserPromptSubmit => 1,
+        HookEvent::PreInvocation => 2,
+        HookEvent::PreToolUse => 3,
+        HookEvent::PostToolUse => 4,
+        HookEvent::PostInvocation => 5,
+        HookEvent::PreCompact => 6,
+        HookEvent::Stop => 7,
+        HookEvent::SessionEnd => 8,
     });
     let (matcher_mode, matcher_val) = match existing.and_then(|h| h.matcher.as_ref()) {
         Some(HookMatcher::Capability { capability }) => (0, capability_label(capability)),
@@ -231,7 +239,7 @@ fn extract_mcp_defaults(existing: Option<&McpServerSpec>) -> McpFormDefaults {
             String::new(),
             map_to_kv_entries(headers),
         ),
-        Some(McpTransport::StreamableHttp { url, headers }) => (
+        Some(McpTransport::StreamableHttp { url, headers, .. }) => (
             0,
             url.clone(),
             String::new(),
@@ -279,10 +287,13 @@ pub(super) fn apply_hook(
         .map_err(|err| err.to_string())?;
     let event = match form.enum_value("event").unwrap_or("PreToolUse") {
         "SessionStart" => HookEvent::SessionStart,
-        "PostToolUse" => HookEvent::PostToolUse,
+        "UserPromptSubmit" => HookEvent::UserPromptSubmit,
         "PreInvocation" => HookEvent::PreInvocation,
+        "PostToolUse" => HookEvent::PostToolUse,
         "PostInvocation" => HookEvent::PostInvocation,
+        "PreCompact" => HookEvent::PreCompact,
         "Stop" => HookEvent::Stop,
+        "SessionEnd" => HookEvent::SessionEnd,
         _ => HookEvent::PreToolUse,
     };
     let matcher_val = form.text_value("matcher_value").unwrap_or_default();
@@ -352,6 +363,11 @@ pub(super) fn apply_mcp(
         return Err(format!("MCP server `{name}` already exists"));
     }
 
+    let existing_mcp = edit_idx.and_then(|idx| workspace.manifest.mcp_servers.get(idx));
+    let existing_auth = existing_mcp.map_or(McpAuthMode::HeaderVar, |m| match &m.transport {
+        McpTransport::StreamableHttp { auth, .. } => *auth,
+        McpTransport::Stdio { .. } | McpTransport::LegacySse { .. } => McpAuthMode::HeaderVar,
+    });
     let kv_map = kv_entries_to_map(form.kv_entries("env_or_headers").unwrap_or(&[]));
     let transport = match form.enum_value("transport").unwrap_or("streamable_http") {
         "stdio" => {
@@ -380,6 +396,7 @@ pub(super) fn apply_mcp(
                 .ok_or_else(|| "Streamable HTTP MCP server requires a `url`".to_owned())?;
             McpTransport::StreamableHttp {
                 url,
+                auth: existing_auth,
                 headers: kv_map,
             }
         }
@@ -405,6 +422,10 @@ pub(super) fn apply_mcp(
         enabled: form.bool_value("enabled").unwrap_or(true),
         transport,
         variables,
+        tool_loading: existing_mcp.map_or(McpToolLoading::Eager, |m| m.tool_loading),
+        allowed_tools: existing_mcp.map_or_default(|m| m.allowed_tools.clone()),
+        denied_tools: existing_mcp.map_or_default(|m| m.denied_tools.clone()),
+        risk_surfaces: existing_mcp.map_or_default(|m| m.risk_surfaces.clone()),
     };
     if let Some(idx) = edit_idx {
         let Some(slot) = workspace.manifest.mcp_servers.get_mut(idx) else {

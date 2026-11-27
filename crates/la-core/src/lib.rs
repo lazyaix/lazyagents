@@ -35,7 +35,10 @@ pub use crate::hook_eval::{
     HookEvalContext, HookGuardKind, HookProtocol, PreToolUseOutput, StopHookOutput,
     evaluate_hook_json,
 };
-pub use crate::id::{HookEvent, KebabName, PolicyDecision, ResourceId, TargetKind, ToolCapability};
+pub use crate::id::{
+    HookEvent, KebabName, PolicyDecision, ResourceId, TargetKind, TargetOutputStrategy,
+    ToolCapability,
+};
 pub use crate::lint::{
     Diagnostic, DiagnosticLocation, DiagnosticSeverity, LintCode, LintInputs, LintReport,
     lint_project,

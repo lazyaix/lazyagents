@@ -6,7 +6,10 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::engineering::{ArchitectureLayer, EngineeringPolicy, ProtectedPathEntry, VerifyCommand};
+use crate::engineering::{
+    ArchitectureLayer, EngineeringPolicy, FormatPolicy, FormatRule, ProtectedPathEntry,
+    ShellGuardPolicy, VerifyCommand,
+};
 use crate::error::CoreError;
 use crate::id::PolicyDecision;
 use crate::manifest::{
@@ -195,6 +198,13 @@ fn verify_locked_floors(
         locked_by,
         attempted,
     )?;
+    check_lint_floor(
+        "lint.prompt_injection",
+        floor.lint.prompt_injection,
+        candidate.lint.prompt_injection,
+        locked_by,
+        attempted,
+    )?;
     check_decision_floor(
         "engineering.git.guardrails.block_push_default_branch",
         floor.engineering.git.guardrails.block_push_default_branch,
@@ -220,6 +230,36 @@ fn verify_locked_floors(
         locked_by,
         attempted,
     )?;
+    if floor.engineering.shell_guard.is_enabled() {
+        if candidate.engineering.shell_guard.enabled == Some(false) {
+            return Err(CoreError::LockedPolicyViolation {
+                setting: "engineering.shell_guard.enabled".to_owned(),
+                locked_by,
+                attempted,
+            });
+        }
+        check_decision_floor(
+            "engineering.shell_guard.block_destructive_rm",
+            floor.engineering.shell_guard.block_destructive_rm,
+            candidate.engineering.shell_guard.block_destructive_rm,
+            locked_by,
+            attempted,
+        )?;
+        check_decision_floor(
+            "engineering.shell_guard.block_pipe_to_shell",
+            floor.engineering.shell_guard.block_pipe_to_shell,
+            candidate.engineering.shell_guard.block_pipe_to_shell,
+            locked_by,
+            attempted,
+        )?;
+        check_decision_floor(
+            "engineering.shell_guard.block_credential_reads",
+            floor.engineering.shell_guard.block_credential_reads,
+            candidate.engineering.shell_guard.block_credential_reads,
+            locked_by,
+            attempted,
+        )?;
+    }
     if floor.engineering.supply_chain.forbid_copyleft
         && !candidate.engineering.supply_chain.forbid_copyleft
     {
@@ -402,6 +442,27 @@ fn merge_engineering(base: &mut EngineeringPolicy, overlay: &EngineeringPolicy) 
     if overlay.release != crate::engineering::ReleasePolicy::default() {
         base.release = overlay.release.clone();
     }
+    if overlay.format != FormatPolicy::default() {
+        base.format.enabled |= overlay.format.enabled;
+        merge_by_key(
+            &mut base.format.rules,
+            &overlay.format.rules,
+            |r: &FormatRule| r.id.as_str(),
+        );
+    }
+    if overlay.shell_guard != ShellGuardPolicy::default() {
+        if let Some(enabled) = overlay.shell_guard.enabled {
+            base.shell_guard.enabled = Some(enabled);
+        }
+        base.shell_guard.block_destructive_rm = overlay.shell_guard.block_destructive_rm;
+        base.shell_guard.block_pipe_to_shell = overlay.shell_guard.block_pipe_to_shell;
+        base.shell_guard.block_credential_reads = overlay.shell_guard.block_credential_reads;
+        merge_by_key(
+            &mut base.shell_guard.extra_deny_patterns,
+            &overlay.shell_guard.extra_deny_patterns,
+            String::as_str,
+        );
+    }
 }
 
 fn record_resource_provenance(
@@ -464,7 +525,7 @@ mod tests {
     use core::assert_matches;
 
     use crate::id::ResourceId;
-    use crate::manifest::{McpServerSpec, McpTransport};
+    use crate::manifest::{McpAuthMode, McpServerSpec, McpToolLoading, McpTransport};
 
     use super::*;
 
@@ -477,9 +538,14 @@ mod tests {
             enabled: true,
             transport: McpTransport::StreamableHttp {
                 url: "https://api.githubcopilot.com/mcp/".to_owned(),
+                auth: McpAuthMode::HeaderVar,
                 headers: BTreeMap::new(),
             },
             variables: Vec::new(),
+            tool_loading: McpToolLoading::Eager,
+            allowed_tools: Vec::new(),
+            denied_tools: Vec::new(),
+            risk_surfaces: Vec::new(),
         });
 
         let mut local = ProjectManifest::default();
@@ -493,6 +559,10 @@ mod tests {
                 cwd: None,
             },
             variables: Vec::new(),
+            tool_loading: McpToolLoading::Eager,
+            allowed_tools: Vec::new(),
+            denied_tools: Vec::new(),
+            risk_surfaces: Vec::new(),
         });
 
         let resolved = ScopeResolver::resolve(vec![
@@ -539,6 +609,54 @@ mod tests {
                 attempted: ConfigScope::Project,
                 ..
             })
+        );
+    }
+
+    #[test]
+    fn organization_enforce_lock_protects_prompt_injection_and_shell_guard() {
+        let mut org = ProjectManifest::default();
+        org.project.name = "org-baseline".to_owned();
+        org.lint.prompt_injection = LintLevel::Error;
+        org.engineering.shell_guard.enabled = Some(true);
+
+        // Omitting [engineering.shell_guard] in project inherits the org lock cleanly.
+        let mut clean_project = ProjectManifest::default();
+        clean_project.project.name = "clean-app".to_owned();
+        let resolved = ScopeResolver::resolve(vec![
+            ScopedLayer::new(
+                ConfigScope::Organization,
+                MergePolicy::EnforceLock,
+                org.clone(),
+            ),
+            ScopedLayer::new(ConfigScope::Project, MergePolicy::Override, clean_project),
+        ])
+        .unwrap();
+        assert!(resolved.manifest.engineering.shell_guard.is_enabled());
+
+        // Explicitly disabling shell_guard violates EnforceLock.
+        let mut disable_shell = ProjectManifest::default();
+        disable_shell.project.name = "bad-app".to_owned();
+        disable_shell.engineering.shell_guard.enabled = Some(false);
+        assert_matches!(
+            ScopeResolver::resolve(vec![
+                ScopedLayer::new(ConfigScope::Organization, MergePolicy::EnforceLock, org.clone()),
+                ScopedLayer::new(ConfigScope::Project, MergePolicy::Override, disable_shell),
+            ]),
+            Err(CoreError::LockedPolicyViolation { setting, .. })
+                if setting == "engineering.shell_guard.enabled"
+        );
+
+        // Weakening LA020 prompt_injection lint violates EnforceLock.
+        let mut weaken_la020 = ProjectManifest::default();
+        weaken_la020.project.name = "bad-app-2".to_owned();
+        weaken_la020.lint.prompt_injection = LintLevel::Warn;
+        assert_matches!(
+            ScopeResolver::resolve(vec![
+                ScopedLayer::new(ConfigScope::Organization, MergePolicy::EnforceLock, org),
+                ScopedLayer::new(ConfigScope::Project, MergePolicy::Override, weaken_la020),
+            ]),
+            Err(CoreError::LockedPolicyViolation { setting, .. })
+                if setting == "lint.prompt_injection"
         );
     }
 

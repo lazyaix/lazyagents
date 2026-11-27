@@ -1,5 +1,5 @@
-//! Reserved cross-agent target adapter stubs (`ClaudeCode`, `Codex`, `GitHubCopilot`)
-//! emitting explicit [`CompatibilityDiagnostic`] reports until M4 adapters ship.
+//! Reserved cross-agent target adapter stubs (`ClaudeCode`, `Codex`, `Cursor`, `GitHubCopilot`)
+//! emitting explicit [`CompatibilityDiagnostic`] reports until Slice 4 adapters ship.
 
 use crate::compiler::{CompatibilityDiagnostic, CompatibilitySeverity};
 use crate::id::TargetKind;
@@ -16,6 +16,7 @@ pub fn compile_reserved_targets(
     let checks = [
         (TargetKind::ClaudeCode, manifest.targets.claude_code.enabled),
         (TargetKind::Codex, manifest.targets.codex.enabled),
+        (TargetKind::Cursor, manifest.targets.cursor.enabled),
         (
             TargetKind::GitHubCopilot,
             manifest.targets.github_copilot.enabled,
@@ -34,7 +35,7 @@ pub fn compile_reserved_targets(
             severity: CompatibilitySeverity::Unsupported,
             subject: format!("target:{target}"),
             message: format!(
-                "target `{target}` adapter is reserved for M4; canonical IR is preserved without emitting target files yet"
+                "target `{target}` adapter is scheduled for Slice 4; canonical IR is preserved without emitting target files yet"
             ),
         });
     }
@@ -53,10 +54,12 @@ mod tests {
 
         manifest.targets.claude_code.enabled = true;
         manifest.targets.codex.enabled = true;
+        manifest.targets.cursor.enabled = true;
         let diags = compile_reserved_targets(&manifest, None);
-        assert_eq!(diags.len(), 2);
+        assert_eq!(diags.len(), 3);
         assert_eq!(diags[0].target, TargetKind::ClaudeCode);
         assert_eq!(diags[1].target, TargetKind::Codex);
+        assert_eq!(diags[2].target, TargetKind::Cursor);
         assert_eq!(diags[0].severity, CompatibilitySeverity::Unsupported);
     }
 }

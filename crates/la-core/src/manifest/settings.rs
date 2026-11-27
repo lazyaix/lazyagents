@@ -3,11 +3,22 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::id::TargetOutputStrategy;
+
 /// Antigravity hard per-file byte cap for `AGENTS.md` and rule files (after include expansion).
 pub const DEFAULT_RULE_MAX_BYTES: usize = 24_000;
 
 /// Antigravity aggregate token budget for always-on and global rules (`defaultRulesBudget`).
 pub const DEFAULT_ALWAYS_ON_MAX_TOKENS: usize = 20_000;
+
+/// Recommended empirical byte target for root `AGENTS.md` before `LA018` lean advisory fires.
+pub const DEFAULT_RECOMMENDED_ROOT_BYTES: usize = 8_192;
+
+/// Recommended empirical always-on token target before `LA018` lean advisory fires.
+pub const DEFAULT_RECOMMENDED_ALWAYS_ON_TOKENS: usize = 2_000;
+
+/// Recommended maximum line count for `SKILL.md` bodies before `LA019` recommends offloading to `references/`.
+pub const DEFAULT_RECOMMENDED_SKILL_MAX_LINES: usize = 500;
 
 /// How generated target outputs (`AGENTS.md`, `.agents/**`) interact with Git.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -106,13 +117,19 @@ pub struct AntigravityTargetConfig {
     pub instruction_file: InstructionFileKind,
 }
 
-/// Reserved target toggle (`[targets.claude_code]`, `[targets.codex]`, `[targets.github_copilot]`).
+/// Cross-agent target settings (`[targets.claude_code]`, `[targets.codex]`,
+/// `[targets.cursor]`, `[targets.github_copilot]`).
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
-pub struct ReservedTargetConfig {
-    /// Reserved activation flag for future cross-agent compiler adapters.
+pub struct CrossAgentTargetConfig {
+    /// Whether compilation emits outputs for this target.
     pub enabled: bool,
+    /// Output deduplication strategy (`shared` AAIF default vs `standalone` full copies).
+    pub instruction_strategy: TargetOutputStrategy,
 }
+
+/// Backwards-compatible alias retained from V1 for [`CrossAgentTargetConfig`].
+pub type ReservedTargetConfig = CrossAgentTargetConfig;
 
 /// Per-target activation and option table (`[targets]`).
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -120,12 +137,14 @@ pub struct ReservedTargetConfig {
 pub struct TargetConfigs {
     /// Google Antigravity target (V1 primary target).
     pub antigravity: AntigravityTargetConfig,
-    /// Reserved Anthropic Claude Code target.
-    pub claude_code: ReservedTargetConfig,
-    /// Reserved `OpenAI` Codex target.
-    pub codex: ReservedTargetConfig,
-    /// Reserved GitHub Copilot target.
-    pub github_copilot: ReservedTargetConfig,
+    /// Anthropic Claude Code target (`CLAUDE.md`, `.claude/**`, `.mcp.json`).
+    pub claude_code: CrossAgentTargetConfig,
+    /// `OpenAI` Codex target (`AGENTS.md`, `.agents/skills/`, `.codex/config.toml`).
+    pub codex: CrossAgentTargetConfig,
+    /// Cursor target (`AGENTS.md`, `.cursor/rules/*.mdc`, `.cursor/hooks.json`, `.cursor/mcp.json`).
+    pub cursor: CrossAgentTargetConfig,
+    /// GitHub Copilot target (`AGENTS.md`, `.github/instructions/`, `.github/hooks/`).
+    pub github_copilot: CrossAgentTargetConfig,
 }
 
 /// Linter threshold and severity settings (`[lint]`).
@@ -136,6 +155,12 @@ pub struct LintConfig {
     pub rule_max_bytes: usize,
     /// Aggregate token budget across always-on rules (`LA003`).
     pub always_on_max_tokens: usize,
+    /// Empirical lean byte advisory threshold for root `AGENTS.md` (`LA018`).
+    pub recommended_root_bytes: usize,
+    /// Empirical lean always-on token advisory threshold (`LA018`).
+    pub recommended_always_on_tokens: usize,
+    /// Empirical maximum line count for `SKILL.md` bodies (`LA019`).
+    pub recommended_skill_max_lines: usize,
     /// Severity for plaintext secret detection (`LA001`).
     pub secrets: LintLevel,
     /// Severity for legacy SSE MCP endpoints on Antigravity (`LA006`).
@@ -146,6 +171,16 @@ pub struct LintConfig {
     pub github_actions_security: LintLevel,
     /// Severity for lossy cross-agent mappings (`LA012`).
     pub compatibility_loss: LintLevel,
+    /// Severity for empirical `AGENTS.md` lean & anti-bloat advisories (`LA018`).
+    pub context_lean: LintLevel,
+    /// Severity for empirical `SKILL.md` quality advisories (`LA019`).
+    pub skill_quality: LintLevel,
+    /// Severity for OWASP ASI01/ASI04 hidden Unicode & prompt-injection scanning (`LA020`).
+    pub prompt_injection: LintLevel,
+    /// Severity for OWASP ASI04 anti-Rug-Pull MCP/Git Pack version pinning (`LA021`).
+    pub supply_chain_pinning: LintLevel,
+    /// Severity for Lethal Trifecta risk & Eager MCP context-tax advisories (`LA022`).
+    pub risk_and_context_tax: LintLevel,
 }
 
 impl LintLevel {
@@ -188,11 +223,19 @@ impl Default for LintConfig {
         Self {
             rule_max_bytes: DEFAULT_RULE_MAX_BYTES,
             always_on_max_tokens: DEFAULT_ALWAYS_ON_MAX_TOKENS,
+            recommended_root_bytes: DEFAULT_RECOMMENDED_ROOT_BYTES,
+            recommended_always_on_tokens: DEFAULT_RECOMMENDED_ALWAYS_ON_TOKENS,
+            recommended_skill_max_lines: DEFAULT_RECOMMENDED_SKILL_MAX_LINES,
             secrets: LintLevel::Error,
             legacy_sse_mcp: LintLevel::Error,
             skill_frontmatter: LintLevel::Error,
             github_actions_security: LintLevel::Error,
             compatibility_loss: LintLevel::Warn,
+            context_lean: LintLevel::Warn,
+            skill_quality: LintLevel::Warn,
+            prompt_injection: LintLevel::Error,
+            supply_chain_pinning: LintLevel::Warn,
+            risk_and_context_tax: LintLevel::Warn,
         }
     }
 }
