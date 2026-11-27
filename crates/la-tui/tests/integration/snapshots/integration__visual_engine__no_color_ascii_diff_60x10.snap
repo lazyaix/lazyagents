@@ -1,0 +1,14 @@
+---
+source: crates/la-tui/tests/integration/visual_engine.rs
+expression: snapshot_text
+---
+┌ D Diff ──────────────────────────────────────────────────┐
+│--- a/AGENTS.md                                           │
+│+++ b/AGENTS.md                                           │
+│@@ -1,2 +1,2 @@                                           │
+│-old rule                                                 │
+│+new cyber rule                                           │
+│                                                          │
+│                                                          │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
