@@ -110,6 +110,11 @@ impl ResourceId {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    pub(crate) fn from_static_valid(value: &'static str) -> Self {
+        debug_assert!(validate_resource_id(value).is_ok());
+        Self(value.to_owned())
+    }
 }
 
 impl fmt::Display for ResourceId {
