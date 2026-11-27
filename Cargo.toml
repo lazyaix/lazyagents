@@ -9,7 +9,7 @@ members = [
 default-members = ["crates/la-cli"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.100"
 license = "Apache-2.0 OR MIT"
@@ -27,9 +27,9 @@ futures-util = { version = "0.3", default-features = false, features = ["std"] }
 globset = "0.4"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 insta = "1.46"
-la-core = { path = "crates/la-core", version = "0.1.0" }
-la-runtime = { path = "crates/la-runtime", version = "0.1.0" }
-la-tui = { path = "crates/la-tui", version = "0.1.0" }
+la-core = { path = "crates/la-core", version = "0.1.1" }
+la-runtime = { path = "crates/la-runtime", version = "0.1.1" }
+la-tui = { path = "crates/la-tui", version = "0.1.1" }
 minijinja = { version = "3.1", features = ["serde", "preserve_order"] }
 notify-debouncer-mini = "0.7"
 proptest = "1.10"
