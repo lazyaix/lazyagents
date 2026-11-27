@@ -1,22 +1,22 @@
 # TUI Architecture & Visual Engineering Specification (`lazyaix/lazyagents`)
 
-This document defines the architecture, **L4 Cyber Flagship** visual/motion pipeline, pure-Rust widget boundaries, modern terminal protocol stack, performance budgets, and testing discipline for **`la-tui`**.
+This document defines the architecture, **L4 Cyber Flagship** visual/motion pipeline, pure-Rust widget boundaries, modern terminal protocol stack, performance budgets, and testing discipline for **`la-tui`**—the interactive **Multi-Agent Project Configuration Studio** of `lazyagents`.
 
-For general Rust language, Workspace, Clippy, concurrency, and testing standards, see [docs/rust-standards.md](rust-standards.md).
+For product positioning, Hybrid SSOT, and compiler architecture, see [docs/architecture.md](architecture.md). For general Rust language, Workspace, Clippy, concurrency, and testing standards, see [docs/rust-standards.md](rust-standards.md).
 
 ---
 
-## 1. UX Paradigm: Hybrid Multi-Mode Interface
+## 1. UX Paradigm: Dual-Mode Config Studio & Headless CLI
 
-`lazyagents` delivers a **hybrid terminal experience** powered by a single `la-core` state machine:
+`lazyagents` delivers a **dual-mode terminal experience** powered by a single `la-core` canonical IR, compiler, and linter engine:
 
 | Mode | Trigger | Viewport | Primary Use Case |
 | :--- | :--- | :--- | :--- |
-| **Fullscreen Workbench (Default)** | `lazyagents` | `Viewport::Fullscreen` (Alternate Screen) | Multi-agent orchestration, split panes (chat, code diffs, live sub-agent PTY, task tree), floating shadowed modals, `Ctrl+K` command palette, full L4 `TachyonFX` shaders & `ratatui-image` media |
-| **Inline Conversation Mode** | `lazyagents --inline` | `Viewport::Inline(height)` | Quick conversational coding turns that preserve the user's native terminal scrollback buffer |
-| **Headless / Pipe CLI Mode** | `lazyagents run ...` / non-TTY stdout | None (`la-tui` never initialized) | Scripts, CI automation, JSON/NDJSON pipelines |
+| **Fullscreen Config Studio (Default in TTY)** | `lazyagents` | `Viewport::Fullscreen` (Alternate Screen) | Project overview dashboard, 24 KB / 20k-token budget radar, Engineering Governance & GitHub Audit views, 8 Antigravity resource editors, live compiled preview & diff split, floating shadowed modals, `Ctrl+K` command palette, `en`/`zh` i18n, full L4 `TachyonFX` shaders |
+| **Inline Quick View (Optional)** | `lazyagents --inline` | `Viewport::Inline(height)` | Compact diagnostic/diff inspection preserving native terminal scrollback |
+| **Headless / CI CLI Mode** | Any subcommand (`check`, `generate`, `hook eval`, `github audit`, …) / `--no-tui` / non-TTY stdout | None (`la-tui` never initialized) | CI/CD merge gates, `lazyagents hook eval` stdin/stdout policy execution, scripts, and AI-agent automation |
 
-**Architectural Consequence**: Because `la-tui` depends strictly on `la-core` (and never on `la-runtime`), all three modes share identical domain state transitions, permission flows, and secret redaction rules.
+**Architectural Consequence**: Because `la-tui` depends strictly on `la-core` (and never on `la-runtime`), both interactive TUI previews and headless CI `check`/`generate` runs execute the exact same compilation, budget calculation, secret scanning, and diff planning logic.
 
 ---
 
@@ -29,12 +29,15 @@ All selected crates MUST pass `deny.toml`'s zero-Copyleft permissive license pol
 - **Terminal Backend**: **`ratatui-crossterm`** (Linux, macOS, Windows), wrapped behind a thin internal `TerminalBackendAdapter` in `la-tui` so future adoption of `ratatui-termina` (Helix VT engine) or custom test backends requires zero widget changes.
 
 ### 2.2 Pure-Rust First Heavy Components
-- **Streaming Markdown + Syntax Highlighting (100% Pure Rust)**:
-  - Markdown parser: **`pulldown-cmark`** (or Ratatui adapter built on it) with incremental block-level caching so completed blocks are never re-parsed during LLM streaming.
-  - Syntax highlighting: **`syntect`** configured strictly with **`default-features = false, features = ["default-fancy"]`** (using the pure-Rust `fancy-regex` engine instead of the C `onig` library), guaranteeing zero C-toolchain friction for `musl` static builds and cross-compilation.
-- **Rich Diff Viewer**: **`similar`** for unified and side-by-side diffs with inline word-level change highlights.
-- **Embedded Live Sub-Agent Terminals**: **`portable-pty`** (hosted in `la-runtime`) streaming raw byte chunks via `la-core` events into **`vt100`** terminal grid parsers rendered inside dedicated `la-tui` panes.
-- **Multi-Line Composer & Modal Keybindings**: Multi-line editor supporting modern desktop/terminal shortcuts by default (`Enter` to submit, `Shift+Enter` for newline via Kitty Keyboard Protocol, fallback `Alt+Enter`/`Ctrl+J`) plus an opt-in **Vim modal editing** mode, paired with a permissive-licensed fuzzy command palette (`Ctrl+K`).
+- **Live Compiled Preview & Syntax Highlighting (100% Pure Rust)**:
+  - Markdown preview: **`pulldown-cmark`** with block-level caching for compiled `AGENTS.md`, conditional rules, `SKILL.md`, and subagent prompts.
+  - Syntax highlighting: **`syntect`** configured strictly with **`default-features = false, features = ["default-fancy"]`** (using the pure-Rust `fancy-regex` engine instead of the C `onig` library) for TOML, JSON (`hooks.json`, `mcp_config.json`, `plugin.json`), YAML (`.github/workflows/*.yml`), and Markdown, guaranteeing zero C-toolchain friction for `musl` static builds and cross-compilation.
+- **Rich Diff Viewer**: **`similar`** for unified and side-by-side diffs of whole-file outputs and managed fenced blocks (`CODEOWNERS`, `.gitignore`), with inline word-level change highlights.
+- **Dual-Mode Editing & `$VISUAL`/`$EDITOR` Handoff**:
+  - Typed structured forms for manifest fields (dropdowns, capability checklists, secret `${VAR}` builders, section reordering).
+  - Lightweight built-in multiline editor for quick body tweaks (`Enter` / `Shift+Enter` via Kitty Keyboard Protocol, fallback `Alt+Enter`/`Ctrl+J`) plus optional Vim navigation bindings.
+  - Seamless external editor handoff (`e` key): cleanly restores terminal state via `DropGuard`, spawns `$VISUAL`/`$EDITOR` on the source file in `la-runtime`, and resumes the TUI with immediate re-lint, budget recalculation, and live diff refresh.
+- **Built-in `en` / `zh` Localization**: Complete bilingual UI string catalog (English default, `--lang en|zh`, locale auto-detection, live in-TUI toggle) with zero hardcoded display labels inside widgets.
 - **Unicode & CJK Layout Precision**: Every width calculation, cursor jump, and line wrap MUST operate on grapheme clusters (`unicode-segmentation`) and terminal cell widths (`unicode-width`) — never `.len()` or `.chars().count()` — ensuring pixel-perfect alignment for Chinese/Japanese/Korean text, Emoji, and Nerd Font glyphs.
 
 ---
@@ -109,7 +112,7 @@ All advanced terminal protocols MUST negotiate cleanly at startup, degrade grace
 flowchart TD
     subgraph Inputs["Async Event Sources (Tokio)"]
         Kbd["Terminal Input / Mouse / Resize"]
-        CoreEv["la-core Events (LLM Tokens, PTY Bytes, Tool Status)"]
+        CoreEv["la-core Events (Compile Preview, Lint, Budget, GH Audit, File Reload)"]
         Tick["Adaptive Frame Ticker (Idle: Off / Active: 60fps)"]
     end
 
@@ -138,7 +141,7 @@ flowchart TD
    - **Idle state** (no active `TachyonFX` shader, no running spinner): **0% CPU** — render ticker sleeps completely until an input or core event arrives.
    - **Active animation state**: Smooth **30–60 FPS** (`~16ms` budget per frame).
    - **Unfocused window**: Automatically drops ambient animation rate (e.g., to 2–5 FPS or paused).
-2. **Frame Coalescing**: Drain all queued LLM tokens and PTY output chunks before issuing a single frame draw per ~16ms tick. Never redraw once per token.
+2. **Frame Coalescing**: Drain all queued background compilation, highlight, and audit events before issuing a single frame draw per ~16ms tick. Never redraw redundantly on rapid bursts.
 3. **Resize Debouncing & Layout Caching**: Cache rendered Markdown lines and highlighted spans keyed by `(content_hash, viewport_width, theme_id)` so scrolling is O(visible_lines) and terminal resizing stays smooth.
 4. **Triple-Safety Terminal Restoration**:
    - **RAII `DropGuard` (Rust 1.100)** owned by the TUI session scope restores raw mode, Kitty keyboard flags, mouse capture, bracketed paste, focus events, cursor visibility, and alternate screen on every normal or early-return exit.

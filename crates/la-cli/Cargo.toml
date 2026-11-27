@@ -1,6 +1,6 @@
 [package]
 name = "lazyagents"
-description = "LazyAgents — open-source AI agents toolkit and terminal workbench in Rust"
+description = "LazyAgents — multi-agent project configuration studio, governance compiler, and hook policy engine in Rust"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

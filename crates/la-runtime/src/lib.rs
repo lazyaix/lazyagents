@@ -1,5 +1,5 @@
-//! Asynchronous runtime, LLM provider clients, tool runners, and embedded PTY orchestration
-//! for `lazyagents`.
+//! Asynchronous filesystem and process runtime for `lazyagents` (workspace discovery,
+//! repository introspection, atomic writers, read-only `gh` auditing, and editor handoff).
 //!
 //! This crate depends strictly on [`la_core`] and must never depend on `la-tui`.
 
