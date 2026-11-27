@@ -72,4 +72,27 @@ pub enum CoreError {
         /// Human-readable description of the scope resolution failure.
         message: String,
     },
+
+    /// A dynamic instruction or scaffold template failed to render.
+    #[error("template render failed for `{template}`: {message}")]
+    TemplateRender {
+        /// Logical template identifier or file path.
+        template: String,
+        /// Sanitized rendering failure reason.
+        message: String,
+    },
+
+    /// Target compilation could not complete due to missing inputs or invalid references.
+    #[error("compilation failed: {message}")]
+    Compile {
+        /// Human-readable description of the compilation failure.
+        message: String,
+    },
+
+    /// Managed lockfile parsing, serialization, or region splicing failed.
+    #[error("lockfile error: {message}")]
+    Lockfile {
+        /// Human-readable description of the lockfile failure.
+        message: String,
+    },
 }
