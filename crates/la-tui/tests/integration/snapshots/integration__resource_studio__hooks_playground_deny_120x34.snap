@@ -1,0 +1,38 @@
+---
+source: crates/la-tui/tests/integration/resource_studio.rs
+expression: rendered
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:0%  TOK:195/20000 │ ✕ 7  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+╭ ◆ DECK ──────────────╮┏ ⚡  Hooks & Lab ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓╭ Preview   Diff   Lint   Budget ╮
+│ OVERVIEW             │┃Built-in Rust guardrails (git-guard, secret-guard,          ┃│{                               │
+│  ◈ HUD Dashboard     │┃protected-paths, verify-gate) compile automatically from    ┃│  "lazyagents-git-guard": {     │
+│                      │┃[engineering].                                              ┃│    "PreToolUse": [             │
+│ GOVERNANCE           │┃                                                            ┃│      {                         │
+│  ❖ Engineering       │┃                                                            ┃│        "hooks": [              │
+│  ❖ GitHub Audit      │┃                                                            ┃│          {                     │
+│                      │┃                                                            ┃│            "command":          │
+│ ANTIGRAVITY          │┃                                                            ┃│"lazyagents hook eval           │
+│  ▤ AGENTS.md (1)     │┃                                                            ┃│git-guard",                     │
+│  § Rules (1)         │┃                                                            ┃│            "timeout": 15,      │
+│  ★ Skills (0)        │┃                                                            ┃│            "type": "command"   │
+│  ◎ Subagents (0)     │┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛│          }                     │
+│▸ ⚡  Hooks & Lab (0)  │╭ ⚡  HOOK POLICY PLAYGROUND ─────────────────────────────────╮│        ],                      │
+│  ⌘ MCP Servers (1)   ││ Guard:  git-guard    [g] Switch Guard   [n] Next Sample    ││        "matcher": "run_command"│
+│  ≡ Manifests (3)     ││[Enter] Evaluate                                            ││      }                         │
+│  ⊞ Plugins (1)       ││                                                            ││    ]                           │
+│                      ││   git push --force origin main                             ││  },                            │
+│ DEPLOY               ││                                                            ││  "lazyagents-secret-guard": {  │
+│  ± Sync & Diff (7)   ││ Verdict:  DENY (DENY)                                      ││    "PreToolUse": [             │
+│                      ││ Reason: force push (`--force`/`-f`) is blocked by          ││      {                         │
+│                      ││[engineering.git.guardrails]; direct push to protected      ││        "hooks": [              │
+│                      ││branch `main` is blocked; push a short-lived branch and open││          {                     │
+│                      ││a PR                                                        ││            "command":          │
+│                      ││ JSON: {"decision":"deny","reason":"force push              ││"lazyagents hook eval           │
+│                      ││(`--force`/`-f`) is blocked by [engineering.git.guardrails];││secret-guard",                  │
+│                      ││direct push to protected branch `main` is blocked; push a   ││            "timeout": 15,      │
+│                      ││short-lived branch and open a PR"}                          ││            "type": "command"   │
+│                      ││                                                            ││          }                     │
+│                      ││                                                            ││        ],                      │
+│                      │╰────────────────────────────────────────────────────────────╯│        "matcher":              │
+╰──────────────────────╯ / Focus Playground Input   g Cycle Guard   n Next Sample   En╰────────────────────────────────╯
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs  ? Help  q Quit

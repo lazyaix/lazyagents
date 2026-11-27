@@ -3,10 +3,12 @@
 
 use core::time::Duration;
 
+use la_core::manifest::GitOutputMode;
 use serde::{Deserialize, Serialize};
 
 use crate::config::{MotionLevel, ShaderPreset, ThemeId, UiLang};
 use crate::editor::EditorAction;
+use crate::media::DecodedRgbaImage;
 use crate::state::{
     FocusPane, GitHubAuditSnapshot, InspectorTab, LogEntry, ModalKind, NavSection, ToastLevel,
     WorkspaceSnapshot,
@@ -66,10 +68,51 @@ pub enum Action {
     ScrollLines(i16),
     /// Toggle boolean or cycle enum on the currently selected setting/resource (`Space` / `Enter`).
     ActivateSelected,
+    /// Cycle the primary enum property on a selected resource (Rule trigger, Subagent model).
+    CycleItemProperty,
+    /// Reorder the selected `AGENTS.md` instruction section up (`K`) or down (`J`).
+    ReorderItem {
+        /// Move toward index 0 when `true`, otherwise move down.
+        up: bool,
+    },
+    /// Open the built-in native grapheme multiline editor on the selected Markdown/prompt body (`i`).
+    StartInlineEdit,
+    /// Persist the active inline editor buffer back to `.lazyagents/` and recompile (`Ctrl+S`).
+    SaveInlineEdit,
+    /// Discard/close the active inline editor session (`Esc`).
+    CancelInlineEdit,
+    /// Toggle optional Vim Normal/Insert mode inside the active inline editor (`Ctrl+V`).
+    ToggleVimMode,
     /// Open external `$VISUAL`/`$EDITOR` on the selected resource's backing source file (`e`).
     OpenExternalEditor,
     /// Forward an editing keystroke into the active native grapheme editor.
     EditorInput(EditorAction),
+    /// Append a character into the `Ctrl+K` Command Palette filter query.
+    PaletteInput(char),
+    /// Delete the last character in the `Ctrl+K` Command Palette filter query.
+    PaletteBackspace,
+    /// Execute the highlighted command inside the `Ctrl+K` Command Palette.
+    PaletteConfirm,
+    /// Advance to the next step inside the Guided Init Wizard.
+    WizardNext,
+    /// Step back inside the Guided Init Wizard.
+    WizardPrev,
+    /// Toggle the highlighted option inside the Guided Init Wizard.
+    WizardToggleOption,
+    /// Confirm and execute workspace initialization from the Guided Init Wizard.
+    WizardConfirm,
+    /// Toggle focus on the Hook Policy Playground live input field.
+    PlaygroundToggleFocus,
+    /// Append a character into the Hook Policy Playground payload input.
+    PlaygroundInput(char),
+    /// Remove the last character from the Hook Policy Playground payload input.
+    PlaygroundBackspace,
+    /// Cycle to the next built-in hook guard inside the Hook Policy Playground.
+    PlaygroundCycleGuard,
+    /// Load the next curated test sample inside the Hook Policy Playground.
+    PlaygroundNextSample,
+    /// Evaluate the current Hook Policy Playground payload via `la-core::hook_eval`.
+    PlaygroundEvaluate,
     /// Request deterministic sync/generate (`s`, or force overwrite from Conflict Guard).
     RequestSync {
         /// Overwrite externally modified managed files when `true`.
@@ -117,6 +160,13 @@ pub enum Action {
     Resize(u16, u16),
     /// Async workspace reload completed by `la-cli` runner.
     WorkspaceLoaded(Box<WorkspaceSnapshot>),
+    /// Off-thread decoded plugin logo image ready for `ratatui-image` rendering.
+    PluginLogoDecoded {
+        /// Kebab-case plugin name.
+        plugin_name: String,
+        /// Pre-decoded RGBA8 pixels.
+        image: DecodedRgbaImage,
+    },
     /// Async read-only GitHub audit completed.
     GitHubAuditLoaded(GitHubAuditSnapshot),
     /// Async read-only GitHub audit failed with a user-facing diagnostic.
@@ -161,6 +211,20 @@ pub enum StudioCommand {
     ApplySync {
         /// Overwrite externally modified files when `true`.
         force: bool,
+    },
+    /// Bootstrap `.lazyagents/` from the Guided First-Run Init Wizard.
+    InitializeWorkspace {
+        /// Chosen Git output policy (`commit` or `ignore`).
+        git_mode: GitOutputMode,
+        /// Whether to ingest existing `AGENTS.md` / `.agents/**` files.
+        import_existing: bool,
+    },
+    /// Decode a plugin logo file off-thread via `tokio::task::spawn_blocking`.
+    LoadPluginLogo {
+        /// Kebab-case plugin name.
+        plugin_name: String,
+        /// Relative path to logo image asset.
+        rel_path: String,
     },
     /// Spawn read-only `gh` CLI audit off the render thread.
     RunGitHubAudit,

@@ -10,6 +10,7 @@ pub mod effects;
 mod error;
 pub mod highlight;
 pub mod i18n;
+pub mod media;
 pub mod protocol;
 pub mod state;
 mod status;
@@ -30,13 +31,15 @@ pub use crate::highlight::{
     render_unified_diff_styled,
 };
 pub use crate::i18n::I18n;
+pub use crate::media::{DecodedRgbaImage, PluginLogoPreview};
 pub use crate::protocol::{
     BackgroundTone, DEC_2026_BEGIN_SYNC, DEC_2026_END_SYNC, GraphicsProtocolKind, ProgressBarState,
     TerminalCapabilities, TerminalEnvHints, TransportTier,
 };
 pub use crate::state::{
-    AppState, AuditCheckView, AuditStatusView, DeckVisibility, DiffStyle, FocusPane,
-    GitHubAuditSnapshot, GovernanceDomain, InspectorTab, LogEntry, LogLevel, ModalKind, NavSection,
+    AppState, AuditCheckView, AuditStatusView, CommandPaletteState, DeckVisibility, DiffStyle,
+    FocusPane, GitHubAuditSnapshot, GovernanceDomain, HookPlaygroundState, HookVerdictView,
+    InitWizardState, InlineEditState, InspectorTab, LogEntry, LogLevel, ModalKind, NavSection,
     ToastLevel, WorkspaceSnapshot,
 };
 pub use crate::status::{budget_status_color, policy_decision_badge, status_label};

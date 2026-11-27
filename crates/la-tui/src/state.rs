@@ -5,10 +5,13 @@
 //! [`StudioCommand`] intents without performing any filesystem or network I/O.
 
 mod governance;
+mod modal;
+mod resources;
 
 use core::time::Duration;
 use std::collections::{BTreeMap, VecDeque};
 
+use la_core::manifest::GitOutputMode;
 use la_core::{
     CompileInputs, CompileOutput, ConfigScope, DiagnosticSeverity, LintInputs, LintReport,
     Lockfile, ProjectFacts, ProjectManifest, WritePlan, compile_all, lint_project, plan_writes,
@@ -18,13 +21,19 @@ use ratatui::layout::Rect;
 
 use crate::action::{Action, StudioCommand, StudioPreferences};
 use crate::config::{MotionLevel, TuiConfig};
+use crate::editor::TextEditor;
 use crate::effects::StudioEffects;
 use crate::highlight::PreviewRenderer;
 use crate::i18n::I18n;
+use crate::media::PluginLogoPreview;
 use crate::protocol::{BackgroundTone, TerminalCapabilities};
 use crate::theme::{ResolvedTheme, Theme};
 
 pub use self::governance::{GovernanceDomain, GovernanceRow, governance_rows};
+pub use self::modal::{
+    CommandPaletteState, FilteredPaletteEntry, HookPlaygroundState, HookVerdictView,
+    InitWizardState, InlineEditState, PaletteCommand, all_palette_commands,
+};
 
 /// Maximum splash display duration before auto-entering the Command Deck (540ms).
 const SPLASH_DURATION_MS: u64 = 540;
@@ -309,6 +318,18 @@ pub struct AppState {
     pub governance_row: usize,
     /// Selected row index inside the active resource list or audit matrix.
     pub list_index: usize,
+    /// Selected section index inside the active `AGENTS.md` instruction plan.
+    pub section_index: usize,
+    /// Active fuzzy Command Palette modal state.
+    pub palette: CommandPaletteState,
+    /// Guided First-Run Init & Import Wizard state.
+    pub wizard: InitWizardState,
+    /// Interactive Hook Policy Playground state inside the Hooks & Lab workspace.
+    pub playground: HookPlaygroundState,
+    /// Active native grapheme inline editor session (when editing a backing Markdown body).
+    pub inline_edit: Option<InlineEditState>,
+    /// Pre-decoded `ratatui-image` plugin logo protocols keyed by plugin name.
+    pub plugin_logos: BTreeMap<String, PluginLogoPreview>,
     /// Vertical scroll offset inside the right live inspector pod.
     pub inspector_scroll: u16,
     /// Vertical scroll offset inside the bottom logs drawer.
@@ -643,6 +664,12 @@ impl AppState {
             governance_domain: GovernanceDomain::Git,
             governance_row: 0,
             list_index: 0,
+            section_index: 0,
+            palette: CommandPaletteState::default(),
+            wizard: InitWizardState::default(),
+            playground: HookPlaygroundState::default(),
+            inline_edit: None,
+            plugin_logos: BTreeMap::new(),
             inspector_scroll: 0,
             logs_scroll: 0,
             selected_output_idx: 0,
@@ -705,8 +732,45 @@ impl AppState {
                 Vec::new()
             }
             Action::ActivateSelected => self.handle_activate(),
+            Action::CycleItemProperty => self.handle_cycle_property(),
+            Action::ReorderItem { up } => self.handle_reorder_section(up),
+            Action::StartInlineEdit => {
+                self.start_inline_edit();
+                Vec::new()
+            }
+            Action::SaveInlineEdit => self.save_inline_edit(),
+            Action::CancelInlineEdit => {
+                self.inline_edit = None;
+                Vec::new()
+            }
+            Action::ToggleVimMode => {
+                if let Some(ref mut edit) = self.inline_edit {
+                    let next = !edit.editor.vim_enabled();
+                    edit.editor.set_vim_enabled(next);
+                }
+                Vec::new()
+            }
             Action::OpenExternalEditor => self.handle_open_external_editor(),
-            Action::EditorInput(_) | Action::Resize(_, _) => Vec::new(),
+            Action::EditorInput(ed_action) => {
+                if let Some(ref mut edit) = self.inline_edit {
+                    edit.editor.apply(ed_action);
+                }
+                Vec::new()
+            }
+            Action::PaletteInput(_)
+            | Action::PaletteBackspace
+            | Action::PaletteConfirm
+            | Action::WizardNext
+            | Action::WizardPrev
+            | Action::WizardToggleOption
+            | Action::WizardConfirm
+            | Action::PlaygroundToggleFocus
+            | Action::PlaygroundInput(_)
+            | Action::PlaygroundBackspace
+            | Action::PlaygroundCycleGuard
+            | Action::PlaygroundNextSample
+            | Action::PlaygroundEvaluate => self.update_modal_or_playground(&action),
+            Action::Resize(_, _) => Vec::new(),
             Action::RequestSync { force } => self.handle_request_sync(force),
             Action::TriggerGitHubAudit => {
                 self.github_audit_loading = true;
@@ -720,6 +784,9 @@ impl AppState {
             Action::CycleMotion => self.cycle_motion(),
             Action::ToggleLang => self.toggle_lang(),
             Action::OpenModal(kind) => {
+                if kind == ModalKind::CommandPalette {
+                    self.palette.reset();
+                }
                 self.modal = Some(kind);
                 self.effects
                     .trigger_modal_entrance(self.geometry.workspace_area, &self.theme);
@@ -822,6 +889,9 @@ impl AppState {
         match action {
             Action::WorkspaceLoaded(ws) => {
                 self.workspace = *ws;
+                if self.workspace.initialized && self.modal == Some(ModalKind::InitWizard) {
+                    self.modal = None;
+                }
                 if self.selected_output_idx >= self.workspace.compiled.files.len() {
                     self.selected_output_idx = 0;
                 }
@@ -831,6 +901,14 @@ impl AppState {
                         .pick("Workspace reloaded", "工作区配置已重新加载")
                         .to_owned(),
                 );
+                Vec::new()
+            }
+            Action::PluginLogoDecoded { plugin_name, image } => {
+                if let Ok(preview) =
+                    PluginLogoPreview::from_rgba(&image, self.capabilities.graphics)
+                {
+                    self.plugin_logos.insert(plugin_name, preview);
+                }
                 Vec::new()
             }
             Action::GitHubAuditLoaded(report) => {
@@ -901,6 +979,15 @@ impl AppState {
     }
 
     fn handle_vertical_move(&mut self, delta: i32) {
+        if self.modal == Some(ModalKind::CommandPalette) {
+            let count = self.palette.filtered(self.i18n()).len();
+            self.palette.selected = shift_index(self.palette.selected, count, delta);
+            return;
+        }
+        if self.modal == Some(ModalKind::InitWizard) && self.wizard.step == 1 {
+            self.wizard.option_index = shift_index(self.wizard.option_index, 2, delta);
+            return;
+        }
         match self.focus {
             FocusPane::Rail => {
                 if delta > 0 {
@@ -924,6 +1011,15 @@ impl AppState {
                     )
                     .len();
                     self.governance_row = shift_index(self.governance_row, count, delta);
+                }
+                NavSection::Instructions => {
+                    let count = self
+                        .workspace
+                        .manifest
+                        .instructions
+                        .get(self.list_index)
+                        .map_or(0, |inst| inst.sections.len());
+                    self.section_index = shift_index(self.section_index, count, delta);
                 }
                 NavSection::GitHubAudit => {
                     let count = self
@@ -1046,7 +1142,206 @@ impl AppState {
                 self.workspace.manifest.clone(),
             ))];
         }
+        if resources::toggle_resource_enabled(
+            self.nav,
+            self.list_index,
+            &mut self.workspace.manifest,
+        ) {
+            self.workspace.recompute();
+            self.push_toast(
+                ToastLevel::Success,
+                self.i18n()
+                    .pick("Resource toggled & recompiled", "资源状态已切换并重编译")
+                    .to_owned(),
+            );
+            return vec![StudioCommand::SaveManifest(Box::new(
+                self.workspace.manifest.clone(),
+            ))];
+        }
         Vec::new()
+    }
+
+    fn handle_cycle_property(&mut self) -> Vec<StudioCommand> {
+        if let Some(note) = resources::cycle_resource_property(
+            self.nav,
+            self.list_index,
+            &mut self.workspace.manifest,
+        ) {
+            self.workspace.recompute();
+            self.push_toast(ToastLevel::Success, note.to_owned());
+            return vec![StudioCommand::SaveManifest(Box::new(
+                self.workspace.manifest.clone(),
+            ))];
+        }
+        Vec::new()
+    }
+
+    fn handle_reorder_section(&mut self, up: bool) -> Vec<StudioCommand> {
+        if self.nav == NavSection::Instructions
+            && let Some(new_idx) = resources::reorder_instruction_section(
+                self.list_index,
+                self.section_index,
+                up,
+                &mut self.workspace.manifest,
+            )
+        {
+            self.section_index = new_idx;
+            self.workspace.recompute();
+            self.push_toast(
+                ToastLevel::Info,
+                self.i18n()
+                    .pick("Section order updated", "AGENTS.md 区块顺序已更新")
+                    .to_owned(),
+            );
+            return vec![StudioCommand::SaveManifest(Box::new(
+                self.workspace.manifest.clone(),
+            ))];
+        }
+        Vec::new()
+    }
+
+    fn start_inline_edit(&mut self) {
+        let Some((rel_path, title)) = resources::editable_source_path(
+            self.nav,
+            self.list_index,
+            self.section_index,
+            &self.workspace.manifest,
+        ) else {
+            self.push_toast(
+                ToastLevel::Info,
+                self.i18n()
+                    .pick(
+                        "Select a File section, Rule, Skill, or Subagent to edit inline (or press e).",
+                        "请选择文件区块、规则、技能或子代理进行内置编辑（或按 e 外部编辑）。",
+                    )
+                    .to_owned(),
+            );
+            return;
+        };
+        let initial = self
+            .workspace
+            .source_files
+            .get(&rel_path)
+            .cloned()
+            .unwrap_or_default();
+        self.inline_edit = Some(InlineEditState {
+            rel_path,
+            title,
+            editor: TextEditor::from_text(&initial),
+        });
+    }
+
+    fn save_inline_edit(&mut self) -> Vec<StudioCommand> {
+        let Some(ref mut edit) = self.inline_edit else {
+            return Vec::new();
+        };
+        let content = edit.editor.text();
+        let rel_path = edit.rel_path.clone();
+        edit.editor.mark_clean();
+        self.workspace
+            .source_files
+            .insert(rel_path.clone(), content.clone());
+        self.workspace.recompute();
+        self.push_toast(ToastLevel::Success, format!("Saved .lazyagents/{rel_path}"));
+        vec![StudioCommand::SaveSourceFile { rel_path, content }]
+    }
+
+    fn update_modal_or_playground(&mut self, action: &Action) -> Vec<StudioCommand> {
+        match *action {
+            Action::PaletteInput(ch) => {
+                self.palette.query.push(ch);
+                self.palette.selected = 0;
+                Vec::new()
+            }
+            Action::PaletteBackspace => {
+                self.palette.query.pop();
+                self.palette.selected = 0;
+                Vec::new()
+            }
+            Action::PaletteConfirm => {
+                let matches = self.palette.filtered(self.i18n());
+                let chosen = matches
+                    .get(self.palette.selected)
+                    .map(|entry| entry.command.action.clone());
+                self.modal = None;
+                chosen.map_or_else(Vec::new, |act| self.update(act))
+            }
+            Action::WizardNext => {
+                if self.wizard.step < 2 {
+                    self.wizard.step = self.wizard.step.saturating_add(1);
+                    Vec::new()
+                } else {
+                    self.update(Action::WizardConfirm)
+                }
+            }
+            Action::WizardPrev => {
+                self.wizard.step = self.wizard.step.saturating_sub(1);
+                Vec::new()
+            }
+            Action::WizardToggleOption => {
+                if self.wizard.option_index == 0 {
+                    self.wizard.git_mode = match self.wizard.git_mode {
+                        GitOutputMode::Commit => GitOutputMode::Ignore,
+                        GitOutputMode::Ignore => GitOutputMode::Commit,
+                    };
+                } else {
+                    self.wizard.import_existing = !self.wizard.import_existing;
+                }
+                Vec::new()
+            }
+            Action::WizardConfirm => {
+                self.modal = None;
+                vec![StudioCommand::InitializeWorkspace {
+                    git_mode: self.wizard.git_mode,
+                    import_existing: self.wizard.import_existing,
+                }]
+            }
+            Action::PlaygroundToggleFocus => {
+                self.playground.input_focused = !self.playground.input_focused;
+                Vec::new()
+            }
+            Action::PlaygroundInput(ch) => {
+                self.playground.input.push(ch);
+                Vec::new()
+            }
+            Action::PlaygroundBackspace => {
+                self.playground.input.pop();
+                Vec::new()
+            }
+            Action::PlaygroundCycleGuard => {
+                self.playground.cycle_guard();
+                if let Some(decision) = self.playground.evaluate(&self.workspace.manifest) {
+                    self.effects.trigger_verdict_flash(
+                        self.geometry.workspace_area,
+                        decision,
+                        &self.theme,
+                    );
+                }
+                Vec::new()
+            }
+            Action::PlaygroundNextSample => {
+                self.playground.next_sample();
+                if let Some(decision) = self.playground.evaluate(&self.workspace.manifest) {
+                    self.effects.trigger_verdict_flash(
+                        self.geometry.workspace_area,
+                        decision,
+                        &self.theme,
+                    );
+                }
+                Vec::new()
+            }
+            Action::PlaygroundEvaluate => {
+                if let Some(decision) = self.playground.evaluate(&self.workspace.manifest) {
+                    self.effects.trigger_verdict_flash(
+                        self.geometry.workspace_area,
+                        decision,
+                        &self.theme,
+                    );
+                }
+                Vec::new()
+            }
+            _ => Vec::new(),
+        }
     }
 
     fn handle_open_external_editor(&self) -> Vec<StudioCommand> {
