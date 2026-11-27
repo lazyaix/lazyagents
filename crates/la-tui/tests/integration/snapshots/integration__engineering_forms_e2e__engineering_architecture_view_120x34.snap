@@ -1,0 +1,38 @@
+---
+source: crates/la-tui/tests/integration/engineering_forms_e2e.rs
+expression: rendered
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:23%  TOK:0/20000 │ ✕ 4  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+╭ ◆ DECK ──────────────╮┏ ❖ ENGINEERING GOVERNANCE [7 DOMAINS] ━━━━━━━━━━━━━━━━━━━━━━┓╭ Preview   Diff   Lint   Budget ╮
+│ OVERVIEW             │┃ Git   Protected   Verify   GitHub   Supply Chain   Architec┃│{                               │
+│  ◈ HUD Dashboard     │┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛│  "lazyagents-git-guard": {     │
+│                      │┏ Architecture ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓│    "PreToolUse": [             │
+│ GOVERNANCE           │┃ ▸ ⛨ Spec Doc                         docs/architecture.md  ┃│      {                         │
+│▸ ❖ Engineering       │┃   ⛨ la-core (crates/la-core/**)      Pure Sans-I/O with    ┃│        "hooks": [              │
+│  ❖ GitHub Audit      │┃zero Tokio or filesystem dependencies.                      ┃│          {                     │
+│                      │┃                                                            ┃│            "command":          │
+│ ANTIGRAVITY          │┃                                                            ┃│"lazyagents hook eval           │
+│  ▤ AGENTS.md (0)     │┃                                                            ┃│git-guard",                     │
+│  § Rules (0)         │┃                                                            ┃│            "timeout": 15,      │
+│  ★ Skills (0)        │┃                                                            ┃│            "type": "command"   │
+│  ◎ Subagents (0)     │┃                                                            ┃│          }                     │
+│  ⚡  Hooks & Lab (0)  │┃                                                            ┃│        ],                      │
+│  ⌘ MCP Servers (0)   │┃                                                            ┃│        "matcher": "run_command"│
+│  ≡ Manifests (3)     │┃                                                            ┃│      }                         │
+│  ⊞ Plugins (0)       │┃                                                            ┃│    ]                           │
+│                      │┃                                                            ┃│  },                            │
+│ DEPLOY               │┃                                                            ┃│  "lazyagents-secret-guard": {  │
+│  ± Sync & Diff (4)   │┃                                                            ┃│    "PreToolUse": [             │
+│                      │┃                                                            ┃│      {                         │
+│                      │┃                                                            ┃│        "hooks": [              │
+│                      │┃                                                            ┃│          {                     │
+│                      │┃                                                            ┃│            "command":          │
+│                      │┃                                                            ┃│"lazyagents hook eval           │
+│                      │┃                                                            ┃│secret-guard",                  │
+│                      │┃                                                            ┃│            "timeout": 15,      │
+│                      │┃                                                            ┃│            "type": "command"   │
+│                      │┃                                              ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ │
+│                      │┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┃ Updated [engineering.architecture] policy   ┃▓▓
+│                      │  h/l: Domain   j/k: Move   Space: Quick Toggle┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓
+╰──────────────────────╯                                                 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs  ? Help  q Quit

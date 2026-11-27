@@ -7,7 +7,7 @@ use la_core::manifest::{InstructionSection, InstructionSpec};
 use la_core::{KebabName, ProjectManifest};
 
 use crate::action::StudioCommand;
-use crate::state::{NavSection, WorkspaceSnapshot};
+use crate::state::{GovernanceDomain, NavSection, WorkspaceSnapshot};
 use crate::text::fuzzy_match;
 
 /// Specific manifest item queued for deletion inside [`ConfirmDeleteState`].
@@ -32,6 +32,14 @@ pub enum DeleteTarget {
     McpServer(usize),
     /// Remove `manifest.plugins[index]`.
     Plugin(usize),
+    /// Remove `manifest.engineering.protected_paths.entries[index]`.
+    ProtectedPathEntry(usize),
+    /// Remove `manifest.engineering.verify.commands[index]`.
+    VerifyCommand(usize),
+    /// Remove `manifest.engineering.architecture.docs[index]`.
+    ArchitectureDoc(usize),
+    /// Remove `manifest.engineering.architecture.layers[index]`.
+    ArchitectureLayer(usize),
 }
 
 /// Interactive state for the shadowed Delete Confirmation modal (`d` key).
@@ -197,6 +205,63 @@ impl ConfirmDeleteState {
         }
     }
 
+    /// Builds a [`ConfirmDeleteState`] for deletable list entries inside `NavSection::Engineering`.
+    #[must_use]
+    pub fn from_engineering_selection(
+        domain: GovernanceDomain,
+        row_idx: usize,
+        manifest: &ProjectManifest,
+    ) -> Option<Self> {
+        let eng = &manifest.engineering;
+        match domain {
+            GovernanceDomain::ProtectedPaths => {
+                let idx = row_idx.checked_sub(2)?;
+                let entry = eng.protected_paths.entries.get(idx)?;
+                Some(Self {
+                    resource_kind: "Protected Path".to_owned(),
+                    item_label: entry.glob.clone(),
+                    backing_path: None,
+                    purge_source_file: false,
+                    target: DeleteTarget::ProtectedPathEntry(idx),
+                })
+            }
+            GovernanceDomain::Verify => {
+                let idx = row_idx.checked_sub(1)?;
+                let cmd = eng.verify.commands.get(idx)?;
+                Some(Self {
+                    resource_kind: "Verify Command".to_owned(),
+                    item_label: cmd.id.to_string(),
+                    backing_path: None,
+                    purge_source_file: false,
+                    target: DeleteTarget::VerifyCommand(idx),
+                })
+            }
+            GovernanceDomain::Architecture => {
+                let docs_len = eng.architecture.docs.len();
+                if let Some(doc) = eng.architecture.docs.get(row_idx) {
+                    Some(Self {
+                        resource_kind: "Architecture Doc".to_owned(),
+                        item_label: doc.clone(),
+                        backing_path: None,
+                        purge_source_file: false,
+                        target: DeleteTarget::ArchitectureDoc(row_idx),
+                    })
+                } else {
+                    let layer_idx = row_idx.checked_sub(docs_len)?;
+                    let layer = eng.architecture.layers.get(layer_idx)?;
+                    Some(Self {
+                        resource_kind: "Architecture Layer".to_owned(),
+                        item_label: layer.name.to_string(),
+                        backing_path: None,
+                        purge_source_file: false,
+                        target: DeleteTarget::ArchitectureLayer(layer_idx),
+                    })
+                }
+            }
+            _ => None,
+        }
+    }
+
     /// Executes the deletion against `workspace` and returns emitted [`StudioCommand`]s.
     pub fn apply(self, workspace: &mut WorkspaceSnapshot) -> Vec<StudioCommand> {
         let mut removed = false;
@@ -234,6 +299,40 @@ impl ConfirmDeleteState {
             }
             DeleteTarget::Plugin(idx) if idx < workspace.manifest.plugins.len() => {
                 workspace.manifest.plugins.remove(idx);
+                removed = true;
+            }
+            DeleteTarget::ProtectedPathEntry(idx)
+                if idx < workspace.manifest.engineering.protected_paths.entries.len() =>
+            {
+                workspace
+                    .manifest
+                    .engineering
+                    .protected_paths
+                    .entries
+                    .remove(idx);
+                removed = true;
+            }
+            DeleteTarget::VerifyCommand(idx)
+                if idx < workspace.manifest.engineering.verify.commands.len() =>
+            {
+                workspace.manifest.engineering.verify.commands.remove(idx);
+                removed = true;
+            }
+            DeleteTarget::ArchitectureDoc(idx)
+                if idx < workspace.manifest.engineering.architecture.docs.len() =>
+            {
+                workspace.manifest.engineering.architecture.docs.remove(idx);
+                removed = true;
+            }
+            DeleteTarget::ArchitectureLayer(idx)
+                if idx < workspace.manifest.engineering.architecture.layers.len() =>
+            {
+                workspace
+                    .manifest
+                    .engineering
+                    .architecture
+                    .layers
+                    .remove(idx);
                 removed = true;
             }
             _ => {}

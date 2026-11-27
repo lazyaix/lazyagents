@@ -1,6 +1,7 @@
 //! Single-binary black-box integration and `insta` snapshot test suite for `la-tui`.
 
 mod command_deck;
+mod engineering_forms_e2e;
 mod form_modals;
 mod resource_forms_e2e;
 mod resource_studio;
