@@ -517,30 +517,36 @@ pub(crate) struct ToggleArgs {
 /// Subcommands under `lazyagents hook`.
 #[derive(Debug, Subcommand)]
 pub(crate) enum HookCommand {
-    /// Evaluate a built-in guardrail hook against JSON on stdin and emit JSON on stdout.
+    /// Evaluate a built-in guardrail hook against JSON on stdin and emit protocol JSON on stdout.
     Eval {
-        /// Guard ID (`git-guard`, `protected-paths`, `secret-guard`, `verify-gate`).
+        /// Guard ID (`git-guard`, `protected-paths`, `secret-guard`, `verify-gate`, `shell-guard`, `compact-guard`, `session-context`, `auto-format`).
         guard: String,
-        /// Hook wire protocol (`antigravity`).
+        /// Hook wire protocol (`antigravity`, `claude-code`, `cursor`, `github-copilot`).
         #[arg(long, value_enum, default_value_t = CliHookProtocol::Antigravity)]
         protocol: CliHookProtocol,
     },
     /// Dry-run test a built-in guardrail hook with a JSON fixture or synthetic arguments.
     Test {
-        /// Guard ID (`git-guard`, `protected-paths`, `secret-guard`, `verify-gate`).
+        /// Guard ID (`git-guard`, `protected-paths`, `secret-guard`, `verify-gate`, `shell-guard`, `compact-guard`, `session-context`, `auto-format`).
         guard: String,
+        /// Hook wire protocol (`antigravity`, `claude-code`, `cursor`, `github-copilot`).
+        #[arg(long, value_enum, default_value_t = CliHookProtocol::Antigravity)]
+        protocol: CliHookProtocol,
         /// Optional JSON fixture file path (`-` reads stdin).
         #[arg(long)]
         input: Option<String>,
-        /// Synthetic shell command line (for `git-guard`).
+        /// Synthetic shell command line (for `git-guard` or `shell-guard`).
         #[arg(long)]
         command: Option<String>,
-        /// Synthetic target file path (for `protected-paths`).
+        /// Synthetic target file path (for `protected-paths` or `auto-format`).
         #[arg(long)]
         path: Option<String>,
         /// Synthetic outgoing file content (for `secret-guard`).
         #[arg(long)]
         content: Option<String>,
+        /// Execute a matched `auto-format` formatter command instead of dry-run planning.
+        #[arg(long)]
+        apply: bool,
     },
 }
 

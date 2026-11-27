@@ -25,6 +25,8 @@ pub(crate) enum CommandOutcome {
     Pass,
     /// Check, diff (`--exit-code`), or GitHub audit found policy/drift failures (exit code `1`).
     CheckFailed,
+    /// Hook wire protocol returned a protocol-specific non-zero exit code (e.g., `2` for Claude Code blocks).
+    HookExit(u8),
     /// Invalid usage, malformed configuration, missing auth, or I/O error (exit code `2`).
     RuntimeError(String),
 }
@@ -34,6 +36,7 @@ impl CommandOutcome {
         match self {
             Self::Pass => ExitCode::SUCCESS,
             Self::CheckFailed => ExitCode::from(1),
+            Self::HookExit(code) => ExitCode::from(code),
             Self::RuntimeError(msg) => {
                 let _ = writeln!(err, "error: {msg}");
                 ExitCode::from(2)

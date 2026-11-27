@@ -5,9 +5,13 @@ use std::fs;
 use std::io::{self, Read as _, Write};
 use std::path::{Path, PathBuf};
 
-use la_core::{HookGuardKind, HookProtocol, ProjectManifest, evaluate_hook_json};
+use la_core::{
+    HookActionOutcome, HookGuardKind, HookProtocol, ProjectManifest, encode_hook_context_message,
+    evaluate_hook_outcome,
+};
 use la_runtime::{
-    audit_github_repo, discover_workspace_root, load_workspace, probe_git_hook_context,
+    audit_github_repo, discover_workspace_root, execute_format_plan, load_workspace,
+    probe_git_hook_context,
 };
 
 use crate::cli::{GithubCommand, HookCommand, OutputFormat};
@@ -18,13 +22,13 @@ pub(super) fn cmd_hook(
     process_cwd: &Path,
     command: HookCommand,
     out: &mut impl Write,
-    _err: &mut impl Write,
+    err: &mut impl Write,
 ) -> CommandOutcome {
     match command {
         HookCommand::Eval { guard, protocol } => {
             let guard_kind = match HookGuardKind::parse(&guard) {
                 Ok(k) => k,
-                Err(err) => return CommandOutcome::RuntimeError(err.to_string()),
+                Err(parse_err) => return CommandOutcome::RuntimeError(parse_err.to_string()),
             };
             let mut stdin_buf = String::new();
             if let Err(io_err) = io::stdin().read_to_string(&mut stdin_buf) {
@@ -36,24 +40,37 @@ pub(super) fn cmd_hook(
             let effective_root = resolve_hook_eval_root(explicit_dir, process_cwd, &stdin_buf);
             let manifest = load_manifest_or_default(&effective_root);
             let ctx = probe_git_hook_context(&effective_root);
-            match evaluate_hook_json(guard_kind, protocol.into(), &stdin_buf, &manifest, &ctx) {
-                Ok(json) => {
-                    let _ = writeln!(out, "{json}");
-                    CommandOutcome::Pass
-                }
-                Err(err) => CommandOutcome::RuntimeError(err.to_string()),
+            let hook_protocol: HookProtocol = protocol.into();
+            let outcome =
+                match evaluate_hook_outcome(guard_kind, hook_protocol, &stdin_buf, &manifest, &ctx)
+                {
+                    Ok(outcome) => outcome,
+                    Err(eval_err) => return CommandOutcome::RuntimeError(eval_err.to_string()),
+                };
+            let final_outcome =
+                match finalize_format_outcome(&effective_root, hook_protocol, outcome, true) {
+                    Ok(o) => o,
+                    Err(exec_err) => return CommandOutcome::RuntimeError(exec_err),
+                };
+            emit_hook_outcome(&final_outcome, out, err);
+            if final_outcome.exit_code == 0 {
+                CommandOutcome::Pass
+            } else {
+                CommandOutcome::HookExit(final_outcome.exit_code)
             }
         }
         HookCommand::Test {
             guard,
+            protocol,
             input,
             command,
             path,
             content,
+            apply,
         } => {
             let guard_kind = match HookGuardKind::parse(&guard) {
                 Ok(k) => k,
-                Err(err) => return CommandOutcome::RuntimeError(err.to_string()),
+                Err(parse_err) => return CommandOutcome::RuntimeError(parse_err.to_string()),
             };
             let effective_root = explicit_dir.map_or_else(
                 || {
@@ -74,21 +91,45 @@ pub(super) fn cmd_hook(
             };
             let manifest = load_manifest_or_default(&effective_root);
             let ctx = probe_git_hook_context(&effective_root);
-            match evaluate_hook_json(
-                guard_kind,
-                HookProtocol::Antigravity,
-                &payload,
-                &manifest,
-                &ctx,
-            ) {
-                Ok(json) => {
-                    let _ = writeln!(out, "{json}");
-                    CommandOutcome::Pass
-                }
-                Err(err) => CommandOutcome::RuntimeError(err.to_string()),
-            }
+            let hook_protocol: HookProtocol = protocol.into();
+            let outcome =
+                match evaluate_hook_outcome(guard_kind, hook_protocol, &payload, &manifest, &ctx) {
+                    Ok(outcome) => outcome,
+                    Err(eval_err) => return CommandOutcome::RuntimeError(eval_err.to_string()),
+                };
+            let final_outcome =
+                match finalize_format_outcome(&effective_root, hook_protocol, outcome, apply) {
+                    Ok(o) => o,
+                    Err(exec_err) => return CommandOutcome::RuntimeError(exec_err),
+                };
+            emit_hook_outcome(&final_outcome, out, err);
+            CommandOutcome::Pass
         }
     }
+}
+
+fn finalize_format_outcome(
+    workspace_root: &Path,
+    protocol: HookProtocol,
+    mut outcome: HookActionOutcome,
+    execute_plan: bool,
+) -> Result<HookActionOutcome, String> {
+    if !execute_plan {
+        return Ok(outcome);
+    }
+    let Some(plan) = outcome.format_plan.take() else {
+        return Ok(outcome);
+    };
+    let exec = execute_format_plan(workspace_root, &plan).map_err(|err| err.to_string())?;
+    encode_hook_context_message(protocol, "PostToolUse", exec.diagnostic)
+        .map_err(|err| err.to_string())
+}
+
+fn emit_hook_outcome(outcome: &HookActionOutcome, out: &mut impl Write, err: &mut impl Write) {
+    if let Some(stderr_msg) = &outcome.stderr {
+        let _ = writeln!(err, "{stderr_msg}");
+    }
+    let _ = writeln!(out, "{}", outcome.stdout);
 }
 
 /// Resolves the effective workspace root for `lazyagents hook eval`.
@@ -127,21 +168,25 @@ fn extract_hook_workspace_candidates(stdin_json: &str) -> Vec<PathBuf> {
         return Vec::new();
     };
     let mut candidates = Vec::new();
-    if let Some(cwd) = val.get("cwd").and_then(serde_json::Value::as_str)
-        && !cwd.trim().is_empty()
-    {
-        candidates.push(PathBuf::from(cwd.trim()));
+    for key in ["cwd", "workingDirectory", "working_directory"] {
+        if let Some(cwd) = val.get(key).and_then(serde_json::Value::as_str)
+            && !cwd.trim().is_empty()
+        {
+            let pb = PathBuf::from(cwd.trim());
+            if !candidates.contains(&pb) {
+                candidates.push(pb);
+            }
+        }
     }
-    if let Some(paths) = val
-        .get("workspacePaths")
-        .and_then(serde_json::Value::as_array)
-    {
-        for item in paths.iter().filter_map(serde_json::Value::as_str) {
-            let trimmed = item.trim();
-            if !trimmed.is_empty() {
-                let pb = PathBuf::from(trimmed);
-                if !candidates.contains(&pb) {
-                    candidates.push(pb);
+    for array_key in ["workspacePaths", "workspace_roots"] {
+        if let Some(paths) = val.get(array_key).and_then(serde_json::Value::as_array) {
+            for item in paths.iter().filter_map(serde_json::Value::as_str) {
+                let trimmed = item.trim();
+                if !trimmed.is_empty() {
+                    let pb = PathBuf::from(trimmed);
+                    if !candidates.contains(&pb) {
+                        candidates.push(pb);
+                    }
                 }
             }
         }

@@ -8,6 +8,7 @@ pub mod editor;
 mod error;
 pub mod gh_audit;
 mod handle;
+pub mod hook_exec;
 pub mod importer;
 pub mod pack_loader;
 pub mod prober;
@@ -21,6 +22,7 @@ pub use crate::gh_audit::{
     AuditCheckStatus, GitHubAuditCheck, GitHubAuditReport, audit_github_repo, compare_github_state,
 };
 pub use crate::handle::RuntimeHandle;
+pub use crate::hook_exec::{FormatExecOutcome, execute_format_plan};
 pub use crate::importer::{
     ImportSource, ImportedWorkspace, import_workspace, write_imported_workspace,
 };

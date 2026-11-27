@@ -121,6 +121,37 @@ pub(crate) fn collect_effective_hooks(manifest: &ProjectManifest) -> Vec<HookSpe
         });
     }
 
+    if manifest.engineering.shell_guard.is_enabled()
+        && !existing_names.contains("lazyagents-shell-guard")
+    {
+        hooks.push(HookSpec {
+            name: ResourceId::from_static_valid("lazyagents-shell-guard"),
+            enabled: true,
+            event: HookEvent::PreToolUse,
+            matcher: Some(HookMatcher::Capability {
+                capability: ToolCapability::Shell,
+            }),
+            command: "lazyagents hook eval shell-guard".to_owned(),
+            timeout_secs: 15,
+        });
+    }
+
+    if manifest.engineering.format.enabled
+        && !manifest.engineering.format.rules.is_empty()
+        && !existing_names.contains("lazyagents-auto-format")
+    {
+        hooks.push(HookSpec {
+            name: ResourceId::from_static_valid("lazyagents-auto-format"),
+            enabled: true,
+            event: HookEvent::PostToolUse,
+            matcher: Some(HookMatcher::Capability {
+                capability: ToolCapability::FileWrite,
+            }),
+            command: "lazyagents hook eval auto-format".to_owned(),
+            timeout_secs: 15,
+        });
+    }
+
     hooks.extend(manifest.hooks.iter().cloned());
     hooks
 }
