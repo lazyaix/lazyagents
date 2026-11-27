@@ -395,6 +395,30 @@ fn action_palette_commands(i18n: I18n) -> Vec<PaletteCommand> {
             Action::OpenExternalEditor,
         ),
         cmd(
+            i18n.pick("Add Resource (Modal Form)", "新建当前视图资源（表单）"),
+            "EDIT",
+            "a",
+            Action::OpenAddResource,
+        ),
+        cmd(
+            i18n.pick(
+                "Edit Selected Resource (Modal Form)",
+                "编辑选中资源（表单）",
+            ),
+            "EDIT",
+            "E",
+            Action::OpenEditResource,
+        ),
+        cmd(
+            i18n.pick(
+                "Add AGENTS.md Plan (Monorepo)",
+                "新建 AGENTS.md 计划（Monorepo）",
+            ),
+            "EDIT",
+            "A",
+            Action::OpenAddInstructionPlan,
+        ),
+        cmd(
             i18n.pick("Open Built-in Catalog Picker", "打开内置预设与能力目录"),
             "CATALOG",
             "C",

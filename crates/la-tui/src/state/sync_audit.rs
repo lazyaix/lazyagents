@@ -10,8 +10,8 @@ use crate::media::PluginLogoPreview;
 use crate::protocol::BackgroundTone;
 use crate::state::catalog_modal::ConfirmDeleteState;
 use crate::state::{
-    AppState, FocusPane, InlineEditState, ModalKind, NavSection, SPLASH_DURATION_MS, ToastLevel,
-    governance, resources,
+    AppState, FocusPane, FormTarget, InlineEditState, ModalKind, NavSection, SPLASH_DURATION_MS,
+    ToastLevel, governance, resource_forms, resources,
 };
 use crate::theme::{ResolvedTheme, Theme};
 
@@ -380,6 +380,22 @@ impl AppState {
                 Vec::new()
             }
             Action::CatalogConfirm => self.confirm_catalog_install(),
+            Action::OpenAddResource => {
+                self.open_add_resource_form();
+                Vec::new()
+            }
+            Action::OpenAddInstructionPlan => {
+                let (form, target) = resource_forms::build_add_instruction_plan_form(
+                    &self.workspace.manifest,
+                    self.i18n(),
+                );
+                self.open_targeted_form(form, target);
+                Vec::new()
+            }
+            Action::OpenEditResource => {
+                self.open_edit_resource_form();
+                Vec::new()
+            }
             Action::OpenForm(form) => {
                 self.open_form_modal(*form);
                 Vec::new()
@@ -455,31 +471,110 @@ impl AppState {
         }
     }
 
+    fn open_add_resource_form(&mut self) {
+        let Some((form, target)) = resource_forms::build_add_form(
+            self.nav,
+            self.list_index,
+            &self.workspace.manifest,
+            self.i18n(),
+        ) else {
+            self.push_toast(
+                ToastLevel::Info,
+                self.i18n()
+                    .pick(
+                        "Switch to an Antigravity resource view (4-9, Manifests, Plugins) to add items.",
+                        "请切换到 Antigravity 资源视图（4-9、索引清单、插件）以新建资源。",
+                    )
+                    .to_owned(),
+            );
+            return;
+        };
+        self.open_targeted_form(form, target);
+    }
+
+    fn open_edit_resource_form(&mut self) {
+        let Some((form, target)) = resource_forms::build_edit_form(
+            self.nav,
+            self.list_index,
+            self.section_index,
+            &self.workspace,
+            self.i18n(),
+        ) else {
+            self.push_toast(
+                ToastLevel::Info,
+                self.i18n()
+                    .pick(
+                        "Select a resource item first (or press `a` to add one).",
+                        "请先选择一个资源条目（或按 `a` 新建）。",
+                    )
+                    .to_owned(),
+            );
+            return;
+        };
+        self.open_targeted_form(form, target);
+    }
+
+    fn open_targeted_form(&mut self, form: ModalFormState, target: FormTarget) {
+        self.active_form = Some(form);
+        self.active_form_target = Some(target);
+        self.modal = Some(ModalKind::FormModal);
+        self.effects
+            .trigger_modal_entrance(self.geometry.workspace_area, &self.theme);
+    }
+
     fn open_form_modal(&mut self, form: ModalFormState) {
         self.active_form = Some(form);
+        self.active_form_target = None;
         self.modal = Some(ModalKind::FormModal);
         self.effects
             .trigger_modal_entrance(self.geometry.workspace_area, &self.theme);
     }
 
     fn handle_form_input(&mut self, form_action: FormAction) -> Vec<StudioCommand> {
-        let Some(ref mut form) = self.active_form else {
-            return Vec::new();
-        };
-        match form.apply(form_action) {
-            FormOutcome::Continue => Vec::new(),
-            FormOutcome::Cancel => {
+        let outcome = self.active_form.as_mut().map(|f| f.apply(form_action));
+        match outcome {
+            Some(FormOutcome::Cancel) => {
                 self.active_form = None;
+                self.active_form_target = None;
                 self.modal = None;
                 Vec::new()
             }
-            FormOutcome::Submit => {
-                let title = form.title.clone();
-                self.active_form = None;
-                self.modal = None;
-                self.push_toast(ToastLevel::Success, format!("Validated form: {title}"));
-                Vec::new()
+            Some(FormOutcome::Submit) => self.commit_active_form(),
+            _ => Vec::new(),
+        }
+    }
+
+    fn commit_active_form(&mut self) -> Vec<StudioCommand> {
+        if let Some(target) = self.active_form_target {
+            let result = self.active_form.as_ref().map_or_else(
+                || Err("No active form".to_owned()),
+                |form| resource_forms::apply_form_submit(target, form, &mut self.workspace),
+            );
+            match result {
+                Ok((summary, cmds)) => {
+                    self.active_form = None;
+                    self.active_form_target = None;
+                    self.modal = None;
+                    self.clamp_selection_indices();
+                    self.push_toast(ToastLevel::Success, summary);
+                    cmds
+                }
+                Err(err_msg) => {
+                    if let Some(form) = self.active_form.as_mut() {
+                        form.submit_error = Some(err_msg);
+                    }
+                    Vec::new()
+                }
             }
+        } else {
+            let title = self
+                .active_form
+                .as_ref()
+                .map_or_else(String::new, |f| f.title.clone());
+            self.active_form = None;
+            self.modal = None;
+            self.push_toast(ToastLevel::Success, format!("Validated form: {title}"));
+            Vec::new()
         }
     }
 

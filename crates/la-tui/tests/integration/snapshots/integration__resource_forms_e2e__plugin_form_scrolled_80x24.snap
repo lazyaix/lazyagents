@@ -1,0 +1,28 @@
+---
+source: crates/la-tui/tests/integration/resource_forms_e2e.rs
+expression: rendered_80
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:5%  TOK:0/20000 │ ✕ 5  ▲ 0 │ Cyber Neon |
+┏ ⊞ Plugins ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃No project plugins declared.                                                  ┃
+┃         ┏ ◆ Add Project Plugin ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓         ┃
+┃         ┃  Metadata [antigravity]   Bundle Contents                ┃▓▓       ┃
+┃         ┃                                                          ┃▓▓       ┃
+┃         ┃   Plugin Name        team-kit                            ┃▓▓       ┃
+┃         ┃   Display Name       Team Kit                            ┃▓▓       ┃
+┃         ┃   Version            0.1.0                               ┃▓▓       ┃
+┃         ┃   Description        Cohesive governance plugin          ┃▓▓       ┃
+┗━━━━━━━━━┃   Author             LazyAIX                             ┃▓▓━━━━━━━┛
+╭ ⊞ PLUGIN┃   Homepage                                               ┃▓▓───────╮
+│-        ┃https://github.com/lazyaix/lazyagents                     ┃▓▓       │
+│         ┃   Repository                                             ┃▓▓       │
+│         ┃https://github.com/lazyaix/lazyagents                     ┃▓▓       │
+│         ┃   Logo Asset         assets/team.png                     ┃▓▓       │
+│         ┃   Starter Prompts    (empty — Enter to add)              ┃▓▓       │
+│         ┃ ▸ Enabled             ● ON                               ┃▓▓       │
+│         ┃                                                          ┃▓▓       │
+│         ┃ Tab/Up/Down Field   Alt+Left/Right Tab   Enter Activate/…┃▓▓━━━━━┓ │
+│         ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓i`   ┃▓▓
+│           ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓━━━━━┛▓▓
+╰────────────────────────────────────────────────╯╰──▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs…

@@ -6,6 +6,7 @@ use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Paragraph, Wrap};
+use unicode_width::UnicodeWidthStr as _;
 
 use crate::form::{
     FieldKind, FormField, KeyValueListState, ModalFormState, StringListState, TextInputState,
@@ -39,8 +40,20 @@ pub(super) fn render_form_modal(state: &AppState, frame: &mut Frame<'_>, area: R
         render_form_tabs(form, frame, tabs_area, theme);
     }
 
-    let lines = render_form_fields(form, theme);
-    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), body_area);
+    let (lines, focus_start, focus_end) =
+        render_form_fields(form, theme, usize::from(body_area.width));
+    let view_h = usize::from(body_area.height);
+    let scroll_y = if view_h > 0 && focus_end > view_h {
+        u16::try_from(focus_end.saturating_sub(view_h).min(focus_start)).unwrap_or(0)
+    } else {
+        0
+    };
+    frame.render_widget(
+        Paragraph::new(lines)
+            .wrap(Wrap { trim: false })
+            .scroll((scroll_y, 0)),
+        body_area,
+    );
 
     if let Some(err) = &form.submit_error {
         let err_line = Line::from(vec![
@@ -348,16 +361,56 @@ fn render_form_tabs(form: &ModalFormState, frame: &mut Frame<'_>, area: Rect, th
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 
-fn render_form_fields(form: &ModalFormState, theme: &Theme) -> Vec<Line<'static>> {
+fn render_form_fields(
+    form: &ModalFormState,
+    theme: &Theme,
+    max_width: usize,
+) -> (Vec<Line<'static>>, usize, usize) {
     let mut lines = Vec::new();
+    let mut visual_row = 0usize;
+    let mut focus_start = 0usize;
+    let mut focus_end = 0usize;
     for idx in form.visible_field_indices() {
         let Some(field) = form.fields.get(idx) else {
             continue;
         };
         let focused = idx == form.focused_field;
+        let prev_len = lines.len();
+        let start_row = visual_row;
         append_field_lines(field, focused, theme, &mut lines);
+        for line in lines.get(prev_len..).unwrap_or(&[]) {
+            visual_row = visual_row.saturating_add(visual_line_rows(line, max_width));
+        }
+        if focused {
+            focus_start = start_row;
+            focus_end = visual_row;
+        }
     }
-    lines
+    (lines, focus_start, focus_end)
+}
+
+fn visual_line_rows(line: &Line<'_>, max_width: usize) -> usize {
+    if max_width == 0 {
+        return 1;
+    }
+    let mut rows = 1usize;
+    let mut col = 0usize;
+    for span in &line.spans {
+        for word in span.content.split_inclusive(char::is_whitespace) {
+            let w = word.width();
+            if col > 0 && col.saturating_add(w) > max_width {
+                rows = rows.saturating_add(1);
+                col = w.checked_rem(max_width).unwrap_or(0);
+            } else {
+                col = col.saturating_add(w);
+                if col > max_width {
+                    rows = rows.saturating_add(col.checked_div(max_width).unwrap_or(0));
+                    col = col.checked_rem(max_width).unwrap_or(0);
+                }
+            }
+        }
+    }
+    rows
 }
 
 fn append_field_lines(
