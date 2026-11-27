@@ -28,6 +28,6 @@ pub use crate::pack_loader::load_local_packs;
 pub use crate::prober::{probe_git_hook_context, probe_repository};
 pub use crate::workspace::{
     LOCAL_MANIFEST_REL_PATH, LOCKFILE_REL_PATH, LoadedWorkspace, MANIFEST_REL_PATH,
-    build_initial_manifest, load_workspace, save_manifest,
+    build_initial_manifest, discover_workspace_root, load_workspace, save_manifest,
 };
 pub use crate::writer::{ApplyOptions, ApplySummary, apply_write_plan, write_atomic};

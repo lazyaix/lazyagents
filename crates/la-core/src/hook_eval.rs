@@ -78,6 +78,8 @@ struct AntigravityPreToolUseInput {
     #[serde(default)]
     cwd: Option<String>,
     #[serde(default)]
+    workspace_paths: Vec<String>,
+    #[serde(default)]
     tool_call: Option<AntigravityToolCall>,
 }
 
@@ -189,7 +191,11 @@ pub fn evaluate_hook_json(
         HookGuardKind::ProtectedPaths => {
             let input: AntigravityPreToolUseInput = parse_stdin(stdin_json)?;
             let path = extract_target_path(&input);
-            let root = ctx.workspace_root.as_deref().or(input.cwd.as_deref());
+            let root = ctx
+                .workspace_root
+                .as_deref()
+                .or(input.cwd.as_deref())
+                .or_else(|| input.workspace_paths.first().map(String::as_str));
             let out = evaluate_protected_paths(
                 path.as_deref().unwrap_or_default(),
                 root,
@@ -619,6 +625,15 @@ mod tests {
             evaluate_git_guard("git push -u origin feat/ok", &manifest, &feat_ctx).decision,
             "allow"
         );
+        assert_eq!(
+            evaluate_git_guard(
+                "git push --force-with-lease origin feat/ok",
+                &manifest,
+                &feat_ctx
+            )
+            .decision,
+            "allow"
+        );
     }
 
     #[test]
@@ -656,6 +671,17 @@ mod tests {
         )
         .unwrap();
         assert!(pp_out.contains("\"decision\":\"deny\""));
+
+        let ws_paths_in = r#"{"workspacePaths":["/repo"],"toolCall":{"name":"edit_file","args":{"Path":"/repo/.github/workflows/ci.yml"}}}"#;
+        let ws_paths_out = evaluate_hook_json(
+            HookGuardKind::ProtectedPaths,
+            HookProtocol::Antigravity,
+            ws_paths_in,
+            &manifest,
+            &HookEvalContext::default(),
+        )
+        .unwrap();
+        assert!(ws_paths_out.contains("\"decision\":\"deny\""));
 
         let leaked = format!("ghs_{}.{}", "a".repeat(25), "b".repeat(25));
         let sec_in = format!(

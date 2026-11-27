@@ -5,10 +5,11 @@ use std::collections::BTreeMap;
 
 use la_core::catalog::{builtin_github_scaffold, builtin_section_template, list_section_presets};
 use la_core::compiler::CompatibilitySeverity;
-use la_core::engineering::GitHubScaffold;
+use la_core::engineering::{CiInstallMode, GitHubScaffold, PrTemplateSyncMode, VerifyCommand};
 use la_core::{
-    CompileInputs, DetectedLanguage, FileAction, ProjectFacts, ProjectManifest, TargetKind,
-    TemplateContext, TemplateEngine, compile_all, plan_writes, scan_secrets,
+    CompileInputs, DetectedLanguage, FileAction, LintInputs, OwnershipMode, ProjectFacts,
+    ProjectManifest, ResourceId, TargetKind, TemplateContext, TemplateEngine, compile_all,
+    lint_project, plan_writes, scan_secrets,
 };
 
 #[test]
@@ -266,4 +267,99 @@ fn full_antigravity_and_github_compile_then_plan_writes_roundtrip() {
         .find(|f| f.path == "AGENTS.md")
         .unwrap();
     assert_eq!(agents_plan.action, FileAction::ExternalConflict);
+}
+
+#[test]
+fn github_ci_install_modes_and_managed_pr_template_preserve_custom_sections() {
+    let mut manifest = ProjectManifest::default();
+    manifest.engineering.github.enabled = true;
+    manifest.engineering.github.sync.ci_workflow = true;
+    manifest.engineering.github.sync.pr_template = true;
+    manifest.engineering.github.sync.pr_template_mode = PrTemplateSyncMode::ManagedBlock;
+    manifest.engineering.github.sync.lint_workflows = true;
+    manifest.engineering.verify.commands.push(VerifyCommand {
+        id: ResourceId::parse("test").unwrap(),
+        label: "Test".to_owned(),
+        cmd: "cargo test --workspace".to_owned(),
+        required: true,
+    });
+
+    // 1. Default ReleaseBinary install mode emits installer + passes LA014-LA016 security checks.
+    let inputs = CompileInputs::default();
+    let release_out = compile_all(&manifest, &inputs).unwrap();
+    let ci_file = release_out
+        .files
+        .iter()
+        .find(|f| f.path == ".github/workflows/lazyagents.yml")
+        .unwrap();
+    assert!(ci_file.content.contains("lazyagents-installer.sh"));
+    assert!(
+        ci_file
+            .content
+            .contains("lazyagents check --strict --format github")
+    );
+
+    let pr_file = release_out
+        .files
+        .iter()
+        .find(|f| f.path == ".github/pull_request_template.md")
+        .unwrap();
+    assert!(matches!(
+        pr_file.ownership,
+        OwnershipMode::ManagedRegion { .. }
+    ));
+
+    let mut disk = BTreeMap::new();
+    disk.insert(
+        ".github/pull_request_template.md".to_owned(),
+        "## Summary\n\n## Type of Change\n- [ ] feat\n".to_owned(),
+    );
+    disk.insert(
+        ".github/workflows/lazyagents.yml".to_owned(),
+        ci_file.content.clone(),
+    );
+
+    let plan = plan_writes(&release_out.files, None, &disk).unwrap();
+    let pr_plan = plan
+        .files
+        .iter()
+        .find(|f| f.path == ".github/pull_request_template.md")
+        .unwrap();
+    let merged_pr = pr_plan.final_content.as_ref().unwrap();
+    assert!(merged_pr.contains("## Type of Change"));
+    assert!(merged_pr.contains("<!-- lazyagents:start -->"));
+    assert!(merged_pr.contains("cargo test --workspace"));
+
+    // Verify generated CI workflow passes all GitHub Actions security linters (LA014-LA016).
+    disk.insert(
+        ".github/pull_request_template.md".to_owned(),
+        merged_pr.clone(),
+    );
+    let report = lint_project(&LintInputs {
+        manifest_toml: "",
+        manifest: &manifest,
+        source_files: &BTreeMap::new(),
+        compile_output: &release_out,
+        write_plan: None,
+        workspace_files: &disk,
+    });
+    assert!(
+        !report.has_errors(false),
+        "diagnostics: {:?}",
+        report.diagnostics
+    );
+
+    // 2. CargoWorkspace mode emits self-hosted `cargo run --locked -- check`.
+    manifest.engineering.github.sync.ci_install = CiInstallMode::CargoWorkspace;
+    let cargo_out = compile_all(&manifest, &inputs).unwrap();
+    let cargo_ci = cargo_out
+        .files
+        .iter()
+        .find(|f| f.path == ".github/workflows/lazyagents.yml")
+        .unwrap();
+    assert!(
+        cargo_ci
+            .content
+            .contains("cargo run --locked -- check --strict --format github")
+    );
 }

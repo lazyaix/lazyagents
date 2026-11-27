@@ -464,6 +464,34 @@ fn check_plugins_la010(inputs: &LintInputs<'_>, diagnostics: &mut Vec<Diagnostic
                 });
             }
         }
+        if let Some(homepage) = &plugin.homepage
+            && !homepage.starts_with("https://")
+        {
+            diagnostics.push(Diagnostic {
+                code: LintCode::La010,
+                severity: DiagnosticSeverity::Error,
+                location: DiagnosticLocation::file(".lazyagents/lazyagents.toml"),
+                message: format!(
+                    "plugin `{}` `homepage` URL `{homepage}` must use `https://`",
+                    plugin.name
+                ),
+                remediation: "Use an `https://` URL for plugin `homepage` metadata.".to_owned(),
+            });
+        }
+        if let Some(repository) = &plugin.repository
+            && !repository.starts_with("https://")
+        {
+            diagnostics.push(Diagnostic {
+                code: LintCode::La010,
+                severity: DiagnosticSeverity::Error,
+                location: DiagnosticLocation::file(".lazyagents/lazyagents.toml"),
+                message: format!(
+                    "plugin `{}` `repository` URL `{repository}` must use `https://`",
+                    plugin.name
+                ),
+                remediation: "Use an `https://` URL for plugin `repository` metadata.".to_owned(),
+            });
+        }
         if plugin.suggested_prompts.len() > 3 {
             diagnostics.push(Diagnostic {
                 code: LintCode::La010,

@@ -162,6 +162,113 @@ fn hook_eval_and_hook_test_enforce_guardrails_over_stdio() {
 }
 
 #[test]
+fn hook_eval_and_check_discover_workspace_root_from_agents_and_nested_subdirs() {
+    let tmp = TempDir::new().unwrap();
+    let root = tmp.path();
+
+    fs::write(
+        root.join("Cargo.toml"),
+        "[package]\nname = \"hook-cwd-demo\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
+    )
+    .unwrap();
+    assert!(run_cli(root, &["init"]).unwrap().status.success());
+
+    // Configure a custom protected path policy inside `.lazyagents/lazyagents.toml`.
+    let manifest_path = root.join(".lazyagents/lazyagents.toml");
+    let raw = fs::read_to_string(&manifest_path).unwrap();
+    let updated = raw.replacen(
+        "codeowners_sync = false\nentries = []",
+        "codeowners_sync = false\nentries = [{ glob = \"secret-docs/**\", owners = [\"@sec-team\"], decision = \"deny\" }]",
+        1,
+    );
+    assert_ne!(raw, updated, "protected_paths block should be updated");
+    fs::write(&manifest_path, updated).unwrap();
+    let gen_out = run_cli(root, &["generate"]).unwrap();
+    assert!(
+        gen_out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&gen_out.stderr)
+    );
+
+    let agents_dir = root.join(".agents");
+    assert!(agents_dir.is_dir());
+
+    // 1. Simulate Antigravity running `.agents/hooks.json` with CWD = `<repo>/.agents/`
+    //    and passing repo root via stdin `cwd` (no `-C` flag).
+    let payload_with_cwd = serde_json::json!({
+        "cwd": root.to_string_lossy(),
+        "toolCall": {
+            "name": "edit_file",
+            "args": {
+                "Path": root.join("secret-docs/keys.md").to_string_lossy()
+            }
+        }
+    })
+    .to_string();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_lazyagents"))
+        .current_dir(&agents_dir)
+        .args(["hook", "eval", "protected-paths"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(payload_with_cwd.as_bytes())
+        .unwrap();
+    let out1 = child.wait_with_output().unwrap();
+    assert!(out1.status.success());
+    let stdout1 = String::from_utf8_lossy(&out1.stdout);
+    assert!(
+        stdout1.contains("\"decision\":\"deny\""),
+        "stdout: {stdout1}"
+    );
+    assert!(stdout1.contains("@sec-team"), "stdout: {stdout1}");
+
+    // 2. Even without stdin `cwd`, ancestor discovery from `<repo>/.agents/` loads project policy.
+    let payload_no_cwd =
+        r#"{"toolCall":{"name":"write_file","args":{"Path":"secret-docs/private.md"}}}"#;
+    let mut child2 = Command::new(env!("CARGO_BIN_EXE_lazyagents"))
+        .current_dir(&agents_dir)
+        .args(["hook", "eval", "protected-paths"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child2
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(payload_no_cwd.as_bytes())
+        .unwrap();
+    let out2 = child2.wait_with_output().unwrap();
+    assert!(out2.status.success());
+    let stdout2 = String::from_utf8_lossy(&out2.stdout);
+    assert!(
+        stdout2.contains("\"decision\":\"deny\""),
+        "stdout: {stdout2}"
+    );
+
+    // 3. Running `lazyagents check` from a nested subdir without `-C` discovers workspace root.
+    let nested = root.join("crates/app/src");
+    fs::create_dir_all(&nested).unwrap();
+    let check_from_subdir = Command::new(env!("CARGO_BIN_EXE_lazyagents"))
+        .current_dir(&nested)
+        .args(["check", "--format", "json"])
+        .output()
+        .unwrap();
+    assert!(
+        check_from_subdir.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&check_from_subdir.stderr)
+    );
+}
+
+#[test]
 fn tui_cli_flags_and_studio_prefs_resolve_deterministically_in_no_tui_mode() {
     let tmp = TempDir::new().unwrap();
     let root = tmp.path();

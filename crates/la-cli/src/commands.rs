@@ -6,9 +6,10 @@ mod workspace;
 
 use std::env;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use la_runtime::discover_workspace_root;
 use la_tui::TerminalCapabilities;
 
 use crate::cli::{Cli, Command};
@@ -43,10 +44,15 @@ impl CommandOutcome {
 
 /// Dispatches parsed [`Cli`] arguments against explicit `out` and `err` writers.
 pub(crate) fn dispatch(cli: Cli, out: &mut impl Write, err: &mut impl Write) -> CommandOutcome {
-    let root = match resolve_workspace_root(cli.dir.clone()) {
+    let cwd = match env::current_dir() {
         Ok(path) => path,
-        Err(msg) => return CommandOutcome::RuntimeError(msg),
+        Err(io_err) => {
+            return CommandOutcome::RuntimeError(format!(
+                "failed to determine current directory: {io_err}"
+            ));
+        }
     };
+    let explicit_dir = cli.dir.clone();
 
     let Some(command) = cli.command else {
         let env_hints = collect_terminal_env_hints();
@@ -61,9 +67,12 @@ pub(crate) fn dispatch(cli: Cli, out: &mut impl Write, err: &mut impl Write) -> 
         };
     };
 
+    let init_root = resolve_init_root(explicit_dir.as_deref(), &cwd);
+    let root = resolve_workspace_root(explicit_dir.as_deref(), &cwd);
+
     match command {
-        Command::Init(args) => workspace::cmd_init(&root, &args, out),
-        Command::Import(args) => workspace::cmd_import(&root, &args, out),
+        Command::Init(args) => workspace::cmd_init(&init_root, &args, out),
+        Command::Import(args) => workspace::cmd_import(&init_root, &args, out),
         Command::Generate(args) => workspace::cmd_generate(&root, &args, out),
         Command::Diff(args) => workspace::cmd_diff(&root, &args, out),
         Command::Check(args) => workspace::cmd_check(&root, &args, out),
@@ -72,14 +81,20 @@ pub(crate) fn dispatch(cli: Cli, out: &mut impl Write, err: &mut impl Write) -> 
         Command::Remove(args) => manage::cmd_remove(&root, &args, out),
         Command::Enable(args) => manage::cmd_toggle(&root, &args, true, out),
         Command::Disable(args) => manage::cmd_toggle(&root, &args, false, out),
-        Command::Hook { command } => hooks_gh::cmd_hook(&root, command, out, err),
+        Command::Hook { command } => {
+            hooks_gh::cmd_hook(explicit_dir.as_deref(), &cwd, command, out, err)
+        }
         Command::Github { command } => hooks_gh::cmd_github(&root, command, out),
     }
 }
 
-fn resolve_workspace_root(explicit: Option<PathBuf>) -> Result<PathBuf, String> {
+fn resolve_init_root(explicit: Option<&Path>, cwd: &Path) -> PathBuf {
+    explicit.map_or_else(|| cwd.to_path_buf(), Path::to_path_buf)
+}
+
+fn resolve_workspace_root(explicit: Option<&Path>, cwd: &Path) -> PathBuf {
     if let Some(dir) = explicit {
-        return Ok(dir);
+        return dir.to_path_buf();
     }
-    env::current_dir().map_err(|err| format!("failed to determine current directory: {err}"))
+    discover_workspace_root(cwd).unwrap_or_else(|| cwd.to_path_buf())
 }

@@ -358,6 +358,15 @@ pub struct PluginSpec {
     /// Semantic version string (e.g., `"1.0.0"`).
     #[serde(default)]
     pub version: Option<String>,
+    /// Optional author or team name emitted into `plugin.json`.
+    #[serde(default)]
+    pub author: Option<String>,
+    /// Optional external `https://` documentation or homepage URL.
+    #[serde(default)]
+    pub homepage: Option<String>,
+    /// Optional source repository `https://` URL.
+    #[serde(default)]
+    pub repository: Option<String>,
     /// Concise summary of the bundle's purpose.
     pub description: String,
     /// Optional plugin-relative logo path (`.png`, `.svg`, `.jpg`, `.jpeg`, `.webp`).

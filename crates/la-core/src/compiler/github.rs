@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 use crate::catalog::builtin_github_scaffold;
 use crate::compiler::{CompileInputs, CompileOutput, GeneratedFile};
-use crate::engineering::{AiDisclosureMode, MergeStrategy};
+use crate::engineering::{AiDisclosureMode, CiInstallMode, MergeStrategy, PrTemplateSyncMode};
 use crate::error::CoreError;
 use crate::lock::ManagedRegionStyle;
 use crate::manifest::{GitOutputMode, ProjectManifest};
@@ -111,6 +111,25 @@ fn normalize_codeowners_pattern(glob: &str) -> String {
 
 fn compile_lazyagents_ci_workflow(manifest: &ProjectManifest) -> GeneratedFile {
     let branch = &manifest.engineering.git.default_branch;
+    let run_steps = match manifest.engineering.github.sync.ci_install {
+        CiInstallMode::ReleaseBinary => {
+            "      - name: Install lazyagents binary\n\
+             \x20       run: |\n\
+             \x20         curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lazyaix/lazyagents/releases/latest/download/lazyagents-installer.sh | sh\n\
+             \x20         echo \"$HOME/.cargo/bin\" >> \"$GITHUB_PATH\"\n\
+             \x20         echo \"$HOME/.local/bin\" >> \"$GITHUB_PATH\"\n\
+             \n\
+             \x20     - name: Verify AI agent configurations\n\
+             \x20       run: lazyagents check --strict --format github\n"
+        }
+        CiInstallMode::CargoWorkspace => {
+            "      - name: Activate pinned Rust toolchain\n\
+             \x20       run: rustup show active-toolchain\n\
+             \n\
+             \x20     - name: Verify AI agent configurations\n\
+             \x20       run: cargo run --locked -- check --strict --format github\n"
+        }
+    };
     let yml = format!(
         "name: LazyAgents Check\n\
 \n\
@@ -139,13 +158,44 @@ jobs:\n\
         with:\n\
           persist-credentials: false\n\
 \n\
-      - name: Verify AI agent configurations\n\
-        run: lazyagents check --strict --format github\n"
+{run_steps}"
     );
     GeneratedFile::whole_file(".github/workflows/lazyagents.yml", yml)
 }
 
 fn compile_pr_template(manifest: &ProjectManifest) -> GeneratedFile {
+    let mut managed_checklist = String::new();
+    if manifest.engineering.git.stacked_prs
+        && manifest.engineering.git.merge_strategy == MergeStrategy::SquashOnly
+    {
+        let branch = &manifest.engineering.git.default_branch;
+        let _ = writeln!(
+            managed_checklist,
+            "<!-- Under squash-only merge: keep downstream stacked PRs as Draft and restack via `git rebase --update-refs --onto origin/{branch} <old-parent-tip> <top-branch>` after upstream merges. -->\n"
+        );
+    }
+    managed_checklist.push_str("## Verification\n\n");
+    if manifest.engineering.verify.commands.is_empty() {
+        managed_checklist.push_str("- [ ] Local lint and tests pass\n");
+    } else {
+        for check in &manifest.engineering.verify.commands {
+            let _ = writeln!(managed_checklist, "- [ ] `{}` ({})", check.cmd, check.label);
+        }
+    }
+    if manifest.engineering.git.ai_disclosure == AiDisclosureMode::PrCheckbox {
+        managed_checklist.push_str(
+            "\n## AI-Assisted Disclosure (Optional)\n\n- [ ] Human-reviewed and verified locally\n",
+        );
+    }
+
+    if manifest.engineering.github.sync.pr_template_mode == PrTemplateSyncMode::ManagedBlock {
+        return GeneratedFile::managed_region(
+            ".github/pull_request_template.md",
+            ManagedRegionStyle::HtmlComment,
+            managed_checklist,
+        );
+    }
+
     let mut body = String::from(
         "## Summary\n\n<!-- Describe what this PR changes and why. -->\n\n## Related Issues / Dependencies\n\n",
     );

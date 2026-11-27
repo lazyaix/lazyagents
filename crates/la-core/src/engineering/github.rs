@@ -23,14 +23,40 @@ pub enum GitHubScaffold {
     SecurityPolicy,
 }
 
+/// How `.github/workflows/lazyagents.yml` installs or invokes `lazyagents` in CI.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CiInstallMode {
+    /// Download the prebuilt `lazyagents` binary from GitHub Releases (default for consumer repos).
+    #[default]
+    ReleaseBinary,
+    /// Run `lazyagents` directly from the current Cargo workspace via `cargo run --locked`.
+    CargoWorkspace,
+}
+
+/// Ownership mode used when synchronizing `.github/pull_request_template.md`.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PrTemplateSyncMode {
+    /// Manage the entire `.github/pull_request_template.md` file.
+    #[default]
+    WholeFile,
+    /// Manage only a fenced HTML-comment block, preserving hand-authored PR template sections.
+    ManagedBlock,
+}
+
 /// Core opt-in `.github/*` file synchronization toggles.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GitHubSyncOptions {
     /// Generate SHA-pinned `.github/workflows/lazyagents.yml` running `lazyagents check`.
     pub ci_workflow: bool,
+    /// How the generated CI workflow installs or runs `lazyagents`.
+    pub ci_install: CiInstallMode,
     /// Generate or update `.github/pull_request_template.md` linked to `[engineering.verify]`.
     pub pr_template: bool,
+    /// Ownership mode for `.github/pull_request_template.md` (`whole-file` or `managed-block`).
+    pub pr_template_mode: PrTemplateSyncMode,
     /// Audit `.github/workflows/*.yml` for SHA pinning, `permissions: {}`, and injection hygiene.
     pub lint_workflows: bool,
 }

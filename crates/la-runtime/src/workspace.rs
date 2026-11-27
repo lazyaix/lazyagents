@@ -46,6 +46,33 @@ pub struct LoadedWorkspace {
     pub lockfile: Option<Lockfile>,
 }
 
+/// Walks ancestor directories from `start` to locate the nearest workspace root containing
+/// [`.lazyagents/lazyagents.toml`](MANIFEST_REL_PATH).
+///
+/// Stops ascending after inspecting a Git repository root (`.git` directory or file) so an
+/// uninitialized repository never accidentally inherits a manifest from an outer directory.
+#[must_use]
+pub fn discover_workspace_root(start: &Path) -> Option<PathBuf> {
+    let mut current = if start.is_file() {
+        start.parent()?
+    } else {
+        start
+    };
+
+    loop {
+        if current.join(MANIFEST_REL_PATH).is_file() {
+            return Some(current.to_path_buf());
+        }
+        if current.join(".git").exists() {
+            return None;
+        }
+        match current.parent() {
+            Some(parent) if parent != current => current = parent,
+            _ => return None,
+        }
+    }
+}
+
 /// Loads `.lazyagents/lazyagents.toml` (and optional `.lazyagents/local.toml`), probes repo facts,
 /// resolves scopes via [`ScopeResolver`], and reads `.lazyagents/` source files + relevant disk files.
 ///
