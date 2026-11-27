@@ -1,5 +1,5 @@
-//! Pure Sans-I/O domain models, state machines, events, and secret-redaction primitives
-//! for `lazyagents`.
+//! Pure Sans-I/O canonical configuration IR, target compilers, compliance/budget linters,
+//! hook policy evaluator, and secret-redaction primitives for `lazyagents`.
 //!
 //! This crate intentionally performs zero network, filesystem, PTY, or terminal I/O so
 //! both `la-runtime` and `la-tui` can share deterministic domain logic.

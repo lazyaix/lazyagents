@@ -1,6 +1,6 @@
 [package]
 name = "la-runtime"
-description = "Async runtime, LLM provider adapters, tools, and embedded PTY execution for LazyAgents"
+description = "Async filesystem shell, repo prober, atomic writer, gh auditor, and editor handoff for LazyAgents"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

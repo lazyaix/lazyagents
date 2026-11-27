@@ -2,22 +2,22 @@
 
 This document is the authoritative Rust engineering specification for **`lazyaix/lazyagents`**. It defines our toolchain baseline, four-layer Cargo workspace architecture, ultra-strict compiler/Clippy governance, module & `.rs` file organization, pure native Rust design principles (incorporating the [Official Rust API Guidelines](https://rust-lang.github.io/api-guidelines/) and [Microsoft Pragmatic Rust Guidelines (`M-*`)](https://microsoft.github.io/rust-guidelines/)), error handling, structured Tokio concurrency, observability, supply-chain hygiene, and verification pyramid.
 
-For TUI visual aesthetics, shader pipelines, terminal protocols, and rendering architecture, see [docs/tui-architecture.md](tui-architecture.md). For GitHub workflow, branching, and release governance, see [docs/git-workflow.md](git-workflow.md).
+For product positioning and domain architecture, see [docs/architecture.md](architecture.md). For TUI visual aesthetics, shader pipelines, terminal protocols, and rendering architecture, see [docs/tui-architecture.md](tui-architecture.md). For GitHub workflow, branching, and release governance, see [docs/git-workflow.md](git-workflow.md).
 
 ---
 
 ## 1. Product Positioning & Four-Layer Clean Workspace
 
-`lazyagents` is **Binary-first with an internal modular Cargo Workspace**: we optimize first for an extraordinary terminal/TUI AI agents experience while organizing internal crates along clean, library-grade boundaries so stable sub-crates can be published to `crates.io` in the future without architectural rewrites.
+`lazyagents` is **Binary-first with an internal modular Cargo Workspace**: we optimize first for an extraordinary **Multi-Agent Project Configuration Studio, Engineering Governance Compiler, and Hook Policy Engine** (TUI + headless CI CLI) while organizing internal crates along clean, library-grade boundaries so stable sub-crates can be published to `crates.io` in the future without architectural rewrites.
 
 ### 1.1 Crate Topology & Strict Unidirectional Dependencies
 
 ```mermaid
 flowchart TD
-    CLI["lazyagents (crates/la-cli)<br/>Binary Entrypoint, CLI Args, Wiring, Signals, Panic Hook"]
-    RUNTIME["la-runtime (crates/la-runtime)<br/>Tokio Async Execution, LLM Clients, Tools, PTY, FS/Net I/O"]
-    TUI["la-tui (crates/la-tui)<br/>Ratatui 0.30, TachyonFX Shaders, Themes, Terminal Protocols"]
-    CORE["la-core (crates/la-core)<br/>Pure Sans-I/O Domain Models, Events, State Machines, Redaction"]
+    CLI["lazyagents (crates/la-cli)<br/>Binary Entrypoint, Clap CLI, Headless CI, Hook Eval, TUI Launcher"]
+    RUNTIME["la-runtime (crates/la-runtime)<br/>Tokio FS/Process Shell, Repo Prober, Atomic Writer, gh Auditor, Editor Handoff"]
+    TUI["la-tui (crates/la-tui)<br/>Ratatui 0.30, TachyonFX Shaders, Themes, EN/ZH i18n, Terminal Protocols"]
+    CORE["la-core (crates/la-core)<br/>Pure Sans-I/O IR, Scope Merge, Templates, Compilers, Linters, Hook Policy Engine"]
 
     CLI --> RUNTIME
     CLI --> TUI
@@ -28,13 +28,13 @@ flowchart TD
 
 | Crate | Path | Responsibility | Allowed Internal Dependencies |
 | :--- | :--- | :--- | :--- |
-| **`la-core`** | `crates/la-core` | Pure **Sans-I/O** (`M-IMPL-IO`) domain types, session/agent state machines, typed event/command protocols, secret redaction types, error contracts | **None** (zero network, filesystem, PTY, Tokio, or Ratatui dependencies) |
-| **`la-runtime`** | `crates/la-runtime` | Tokio async orchestration, LLM provider clients, tool runners, `portable-pty` sub-agent execution, persistence, config loading | `la-core` only |
-| **`la-tui`** | `crates/la-tui` | Ratatui 0.30 rendering, `TachyonFX` shader pipeline, semantic theme engine, Markdown/syntax highlighting, embedded `vt100` views, terminal protocols | `la-core` only |
-| **`lazyagents`** | `crates/la-cli` | Executable binary (`lazyagents`), CLI argument parsing, `color-eyre` & `tracing` setup, signal handling, wiring `la-runtime` ↔ `la-tui` (or headless CLI) | `la-core`, `la-runtime`, `la-tui` |
+| **`la-core`** | `crates/la-core` | Pure **Sans-I/O** (`M-IMPL-IO`) canonical manifest & engineering IR, scope resolver, `minijinja` template engine, target compilers, budget & compliance linters, `hook_eval` policy engine, lock/diff planner, secret redaction | **None** (zero network, filesystem, PTY, Tokio, or Ratatui dependencies) |
+| **`la-runtime`** | `crates/la-runtime` | Tokio async & filesystem orchestration: workspace discovery, offline repo/Git/`.github` prober, importer, atomic whole-file & managed-block writer, local pack loader, read-only `gh` CLI auditor, `$VISUAL`/`$EDITOR` handoff | `la-core` only |
+| **`la-tui`** | `crates/la-tui` | Ratatui 0.30 Config Studio rendering, `TachyonFX` shader pipeline, semantic theme engine, `en`/`zh` i18n, Markdown/syntax-highlighted previews & diffs, dual-mode body editor, terminal protocols | `la-core` only |
+| **`lazyagents`** | `crates/la-cli` | Executable binary (`lazyagents`), `clap` argument parsing, headless CI & `hook eval`/`github audit` commands, `color-eyre` & `tracing` setup, signal handling, wiring `la-runtime` ↔ `la-tui` | `la-core`, `la-runtime`, `la-tui` |
 
 **Hard Architectural Rules**:
-- **`la-tui` MUST NEVER depend on `la-runtime`** (and vice versa). All communication crosses typed events/commands defined in `la-core`. This guarantees `la-tui` compiles rapidly and runs deterministic `TestBackend` snapshot tests with zero network or PTY side effects, while `la-runtime` powers headless/CI modes with zero TUI dependencies.
+- **`la-tui` MUST NEVER depend on `la-runtime`** (and vice versa). All communication crosses typed events/commands defined in `la-core`. This guarantees `la-tui` compiles rapidly and runs deterministic `TestBackend` snapshot tests with zero filesystem or subprocess side effects, while `la-runtime` powers headless CI and `hook eval` modes with zero TUI dependencies.
 - **Workspace Root Manifest**: Uses `resolver = "3"` (MSRV-aware Rust 2024 resolver) and centralizes metadata (`[workspace.package]`), versions (`[workspace.dependencies]`), and lints (`[workspace.lints]`). Every member crate inherits them via `*.workspace = true`.
 
 ---

@@ -1,4 +1,4 @@
-//! L4 Cyber Flagship terminal user interface for `lazyagents`.
+//! L4 Cyber Flagship Ratatui 0.30 + `TachyonFX` Config Studio for `lazyagents`.
 //!
 //! This crate depends strictly on [`la_core`] and must never depend on `la-runtime`,
 //! ensuring fast compilation and deterministic headless visual tests.
