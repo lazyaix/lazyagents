@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - "crates/la-core/**"
-      - "Cargo.toml"
       - "rust-toolchain.toml"
   schedule:
     - cron: "0 4 * * 1"
@@ -14,7 +13,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions: {}
 
@@ -25,12 +24,14 @@ jobs:
   mutants-core:
     name: Mutants (la-core)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 2
           persist-credentials: false
 
       - name: Activate pinned Rust toolchain
@@ -44,5 +45,16 @@ jobs:
         with:
           tool: cargo-mutants,nextest
 
-      - name: Run mutation tests on la-core
-        run: cargo mutants --package la-core --test-tool nextest --no-shuffle
+      - name: Run incremental mutation tests on push
+        if: github.event_name == 'push'
+        run: |
+          git diff HEAD~1..HEAD -- crates/la-core > /tmp/mutants.diff
+          if [ -s /tmp/mutants.diff ]; then
+            cargo mutants --package la-core --test-tool nextest --jobs 2 --in-diff /tmp/mutants.diff --no-shuffle
+          else
+            echo "No crates/la-core diff detected; skipping incremental mutation run."
+          fi
+
+      - name: Run full mutation tests on schedule or manual dispatch
+        if: github.event_name != 'push'
+        run: cargo mutants --package la-core --test-tool nextest --jobs 2 --no-shuffle
