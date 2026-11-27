@@ -57,10 +57,32 @@ git worktree remove ../lazyagents-wt-feat-foo
 git worktree prune
 ```
 
-For large multi-layer changes, decompose work into **Stacked PRs** (e.g., `Layer 1: types/schema` → `Layer 2: core logic` → `Layer 3: CLI/integration`):
-- Keep the bottom PR small and foundational so it can be reviewed and merged quickly.
-- Reference upstream dependencies explicitly in PR descriptions (`Depends on #123`).
-- Use `git rebase --update-refs` (or `gh stack`) to propagate edits cleanly up a local branch stack.
+For large multi-layer changes, decompose work into small vertical slices (e.g., `Layer 1: types/schema` → `Layer 2: core logic` → `Layer 3: CLI/integration`) and choose the delivery cadence that matches your review flow:
+
+| Mode | When to Use | Behavior Under Squash-Only `main` |
+| :--- | :--- | :--- |
+| **Sequential PRs (Default)** | Solo maintainer, fast review loop, or AI agent continuous delivery | Merge PR 1 → fast-forward `main` → branch PR 2 from new `main`. Zero Squash-SHA conflicts; every PR runs full CI immediately. |
+| **Stacked PRs (Async Review)** | Multi-day human review where downstream slices must be written before upstream merges | Only the bottom PR (`base: main`) is **Ready**; open all downstream PRs as **Draft** (`gh pr create --draft`) with `Depends on #<pr>`. |
+
+#### Squash-Only Stacked PR Restack Protocol
+
+Because `main` uses **Squash and Merge only**, merging a parent PR creates a brand-new commit SHA on `main` and deletes the parent branch (causing GitHub to auto-retarget the child PR to `main`). Any child branch whose history still contains the parent's pre-squash commit SHA will immediately turn `CONFLICTING` (`DIRTY`) on overlapping files (`Cargo.toml`, `Cargo.lock`, `lib.rs`) because Git's three-way merge falls back to the older merge-base.
+
+To prevent false conflicts:
+1. **Keep downstream stacked PRs in Draft** (`gh pr create --draft`) until their upstream dependency merges and is restacked. (CI workflows intentionally target `pull_request: branches: [main]` so Draft downstream PRs do not waste duplicate runner minutes before restacking.)
+2. **Never use GitHub's "Update branch" button or plain `git rebase origin/main`** on a stacked child PR whose parent was squash-merged—both replay the already-squashed parent commits against `main`.
+3. **Always restack with `--onto` + `--update-refs`** right after the upstream PR squash-merges, skipping the old parent tip commit:
+   ```bash
+   git fetch origin --prune
+   git rebase --update-refs --onto origin/main <old-parent-tip> <top-branch>
+   git push --force-with-lease origin <child-branch-1> [<child-branch-2> ...]
+   ```
+4. Once the promoted PR targets `main` and shows `MERGEABLE`, mark it ready (`gh pr ready <pr>`) so all required CI checks run cleanly.
+5. Recommended one-time local Git settings for smoother stacking:
+   ```bash
+   git config rebase.updateRefs true
+   git config rerere.enabled true
+   ```
 
 ---
 

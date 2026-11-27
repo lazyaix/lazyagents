@@ -2,14 +2,14 @@
 source: crates/la-tui/tests/integration/command_deck.rs
 expression: buffer_to_text(&term_80)
 ---
- ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:5%  TOK:179/20000 │ ✕ 5  ▲ 0 │ Cyber Neon
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:5%  TOK:264/20000 │ ✕ 5  ▲ 0 │ Cyber Neon
 ┏ ◈ GOVERNANCE HEALTH ━━━━━━━━━━━━━┓╭ ⊞ STUDIO TELEMETRY ──────────────────────╮
 ┃██                                ┃│§ 1  ★ 0  ◎ 0  ⚡  0  ⌘ 0                  │
 ┃██                                ┃│Compiled Outputs: 5  │  ✕ 5  ▲ 0          │
 ┃██           5 / 100              ┃│Targets: Antigravity [ACTIVE]             │
 ┃██                                ┃│                                          │
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛╰──────────────────────────────────────────╯
-┏ ⚡  CONTEXT BUDGET RADAR (179/20000 tok) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┏ ⚡  CONTEXT BUDGET RADAR (264/20000 tok) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃100%│                                                                         ┃
 ┃80% │                                                                         ┃
 ┃0%  │⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀┃

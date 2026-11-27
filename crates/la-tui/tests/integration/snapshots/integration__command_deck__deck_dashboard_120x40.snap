@@ -2,14 +2,14 @@
 source: crates/la-tui/tests/integration/command_deck.rs
 expression: buffer_to_text(&term_120)
 ---
- ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:5%  TOK:179/20000 │ ✕ 5  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:5%  TOK:264/20000 │ ✕ 5  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
 ╭ ◆ DECK ──────────────╮┏ ◈ GOVERNANCE HEALTH ━━━━━┓╭ ⊞ STUDIO TELEMETRY ────────────╮╭ Preview   Diff   Lint   Budget ╮
 │ OVERVIEW             │┃█                         ┃│§ 1  ★ 0  ◎ 0  ⚡  0  ⌘ 0        ││{                               │
 │▸ ◈ HUD Dashboard     │┃█                         ┃│Compiled Outputs: 5  │  ✕ 5  ▲ 0││  "lazyagents-git-guard": {     │
 │                      │┃█        5 / 100          ┃│Targets: Antigravity [ACTIVE]   ││    "PreToolUse": [             │
 │ GOVERNANCE           │┃█                         ┃│                                ││      {                         │
 │  ❖ Engineering       │┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛╰────────────────────────────────╯│        "hooks": [              │
-│  ❖ GitHub Audit      │┏ ⚡  CONTEXT BUDGET RADAR (179/20000 tok) ━━━━━━━━━━━━━━━━━━━┓│          {                     │
+│  ❖ GitHub Audit      │┏ ⚡  CONTEXT BUDGET RADAR (264/20000 tok) ━━━━━━━━━━━━━━━━━━━┓│          {                     │
 │                      │┃100%│                                                       ┃│            "command":          │
 │ ANTIGRAVITY          │┃    │                                                       ┃│"lazyagents hook eval           │
 │  ▤ AGENTS.md (1)     │┃    │                                                       ┃│git-guard",                     │
@@ -27,7 +27,7 @@ expression: buffer_to_text(&term_120)
 │                      │┃    │                                                       ┃│        "hooks": [              │
 │                      │┃    │                                                       ┃│          {                     │
 │                      │┃    │                                                       ┃│            "command":          │
-│                      │┃0%  │⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶┃│"lazyagents hook eval           │
+│                      │┃0%  │⣀⣀⣀⣀⣀⣀⣀⣀⣀⣠⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣴⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿┃│"lazyagents hook eval           │
 │                      │┃    └───────────────────────────────────────────────────────┃│secret-guard",                  │
 │                      │┃    0                                                2 files┃│            "timeout": 15,      │
 │                      │┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛│            "type": "command"   │
