@@ -19,6 +19,8 @@ keywords = ["ai", "agents", "tui", "cli", "ratatui"]
 categories = ["command-line-utilities", "development-tools"]
 
 [workspace.dependencies]
+clap = { version = "4.6", features = ["derive"] }
+color-eyre = "0.6"
 globset = "0.4"
 la-core = { path = "crates/la-core", version = "0.1.0" }
 la-runtime = { path = "crates/la-runtime", version = "0.1.0" }
