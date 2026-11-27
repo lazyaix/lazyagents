@@ -510,11 +510,13 @@ impl ModalFormState {
         let Some(field) = self.fields.get_mut(self.focused_field) else {
             return;
         };
+        let was_dirty = self.dirty;
+        let mut mutated = false;
         match &mut field.kind {
             FieldKind::Text(input) => {
                 apply_text_action(input, action);
                 field.error = input.validate();
-                self.dirty = true;
+                mutated = true;
             }
             FieldKind::Toggle(value) => {
                 if matches!(
@@ -522,7 +524,7 @@ impl ModalFormState {
                     FormAction::Activate | FormAction::MoveLeft | FormAction::MoveRight
                 ) {
                     *value = !*value;
-                    self.dirty = true;
+                    mutated = true;
                 }
             }
             FieldKind::Enum { selected, options } if !options.is_empty() => match action {
@@ -531,7 +533,7 @@ impl ModalFormState {
                         .saturating_add(1)
                         .checked_rem(options.len())
                         .unwrap_or(0);
-                    self.dirty = true;
+                    mutated = true;
                 }
                 FormAction::MoveLeft => {
                     *selected = if *selected == 0 {
@@ -539,17 +541,23 @@ impl ModalFormState {
                     } else {
                         selected.saturating_sub(1)
                     };
-                    self.dirty = true;
+                    mutated = true;
                 }
                 _ => {}
             },
             FieldKind::StringList(list) => {
-                apply_string_list_action(list, action, &mut field.error, &mut self.dirty);
+                apply_string_list_action(list, action, &mut field.error, &mut mutated);
             }
             FieldKind::KeyValueList(kv) => {
-                apply_kv_list_action(kv, action, &mut field.error, &mut self.dirty);
+                apply_kv_list_action(kv, action, &mut field.error, &mut mutated);
             }
             FieldKind::Enum { .. } => {}
+        }
+        if mutated {
+            self.dirty = true;
+            self.submit_error = None;
+        } else {
+            self.dirty = was_dirty;
         }
     }
 }

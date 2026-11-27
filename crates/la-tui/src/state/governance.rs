@@ -187,6 +187,16 @@ fn git_rows(policy: &EngineeringPolicy, i18n: I18n) -> Vec<GovernanceRow> {
             policy.git.default_branch.clone(),
             false,
         ),
+        row(
+            i18n.pick("Worktree Pattern", "Worktree 路径模板"),
+            policy.git.worktree.pattern.clone(),
+            false,
+        ),
+        row(
+            i18n.pick("Branch Prefixes", "推荐分支前缀"),
+            policy.git.branch_prefixes.join(", "),
+            false,
+        ),
     ]
 }
 
@@ -279,6 +289,25 @@ fn github_rows(policy: &EngineeringPolicy, i18n: I18n) -> Vec<GovernanceRow> {
                 .unwrap_or_else(|| "<auto-probed>".to_owned()),
             false,
         ),
+        row(
+            i18n.pick("CI Install Mode", "CI 运行模式"),
+            format!("{:?}", policy.github.sync.ci_install),
+            false,
+        ),
+        row(
+            i18n.pick("PR Template Mode", "PR 模板所有权"),
+            format!("{:?}", policy.github.sync.pr_template_mode),
+            false,
+        ),
+        row(
+            i18n.pick("Expected Required Checks", "预期必过 CI 检查"),
+            if policy.github.expected_rulesets.required_checks.is_empty() {
+                "<none>".to_owned()
+            } else {
+                policy.github.expected_rulesets.required_checks.join(", ")
+            },
+            false,
+        ),
     ]
 }
 
@@ -323,8 +352,8 @@ fn architecture_rows(policy: &EngineeringPolicy, i18n: I18n) -> Vec<GovernanceRo
         rows.push(row(
             i18n.pick("Architecture Layers", "架构分层"),
             i18n.pick(
-                "None declared yet (press e to edit manifest)",
-                "暂未声明（按 e 编辑清单）",
+                "None declared yet (press a / E to configure)",
+                "暂未声明（按 a / E 打开配置表单）",
             )
             .to_owned(),
             false,

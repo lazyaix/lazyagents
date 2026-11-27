@@ -10,7 +10,7 @@ use la_core::{KebabName, ProjectManifest, ResourceId, ToolCapability};
 use crate::action::StudioCommand;
 use crate::form::ModalFormState;
 use crate::i18n::I18n;
-use crate::state::{NavSection, WorkspaceSnapshot};
+use crate::state::{GovernanceDomain, NavSection, WorkspaceSnapshot, engineering_forms};
 
 /// Identifies which resource entity an open [`ModalFormState`] creates or updates on submit.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -62,6 +62,13 @@ pub enum FormTarget {
         /// Existing plugin index when editing, or `None` when creating.
         edit_idx: Option<usize>,
     },
+    /// Edit one of the 7 `[engineering]` governance domains.
+    EngineeringDomain(GovernanceDomain),
+    /// Add or edit a single `[engineering.verify]` command entry.
+    VerifyCommand {
+        /// Existing command index when editing, or `None` when appending.
+        edit_idx: Option<usize>,
+    },
 }
 
 /// Builds a shadowed modal form for adding a new resource in `nav` (`a` key).
@@ -69,10 +76,16 @@ pub enum FormTarget {
 pub(super) fn build_add_form(
     nav: NavSection,
     list_index: usize,
+    governance_domain: GovernanceDomain,
     manifest: &ProjectManifest,
     i18n: I18n,
 ) -> Option<(ModalFormState, FormTarget)> {
     match nav {
+        NavSection::Engineering => Some(engineering_forms::build_engineering_add_form(
+            governance_domain,
+            manifest,
+            i18n,
+        )),
         NavSection::Instructions => {
             if manifest.instructions.is_empty() {
                 Some(docs::build_instruction_plan_form(None, manifest, i18n))
@@ -112,11 +125,19 @@ pub(super) fn build_edit_form(
     nav: NavSection,
     list_index: usize,
     section_index: usize,
+    governance_domain: GovernanceDomain,
+    governance_row: usize,
     workspace: &WorkspaceSnapshot,
     i18n: I18n,
 ) -> Option<(ModalFormState, FormTarget)> {
     let manifest = &workspace.manifest;
     match nav {
+        NavSection::Engineering => Some(engineering_forms::build_engineering_edit_form(
+            governance_domain,
+            governance_row,
+            manifest,
+            i18n,
+        )),
         NavSection::Instructions => {
             let inst = manifest.instructions.get(list_index)?;
             if section_index < inst.sections.len() {
@@ -190,6 +211,12 @@ pub(super) fn apply_form_submit(
             plugins::apply_index_manifest(kind_idx, form, workspace)
         }
         FormTarget::Plugin { edit_idx } => plugins::apply_plugin(edit_idx, form, workspace)?,
+        FormTarget::EngineeringDomain(domain) => {
+            engineering_forms::apply_engineering_domain(domain, form, workspace)?
+        }
+        FormTarget::VerifyCommand { edit_idx } => {
+            engineering_forms::apply_verify_command(edit_idx, form, workspace)?
+        }
     };
 
     workspace.recompute();

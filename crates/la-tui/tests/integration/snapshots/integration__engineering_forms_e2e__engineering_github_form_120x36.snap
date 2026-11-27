@@ -1,0 +1,40 @@
+---
+source: crates/la-tui/tests/integration/engineering_forms_e2e.rs
+expression: rendered
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:41%  TOK:0/20000 │ ✕ 3  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+╭ ◆ DECK ──────────────╮┏ ❖ ENGINEERING GOVERNANCE [7 DOMAINS] ━━━━━━━━━━━━━━━━━━━━━━┓╭ Preview   Diff   Lint   Budget ╮
+│ OVERVIEW             │┃ Git   Protected   Verify   GitHub   Supply Chain   Architec┃│{                               │
+│  ◈ HUD Dashboard     │┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛│  "lazyagents-git-guard": {     │
+│                      │┏ GitHub ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓│    "PreToolUse": [             │
+│ GOVERNANCE  ┏ ◆ Configure [engineering.github] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓             │
+│▸ ❖ Engineeri┃  Sync & Presets   Expected Rulesets                                                      ┃▓▓           │
+│  ❖ GitHub Au┃                                                                                          ┃▓▓           │
+│             ┃   Protect Main        ● ON                                                               ┃▓▓:          │
+│ ANTIGRAVITY ┃   Linear History      ● ON                                                               ┃▓▓           │
+│  ▤ AGENTS.md┃   Require PR          ● ON                                                               ┃▓▓           │
+│  § Rules (0)┃   Required Checks     Clippy                                                             ┃▓▓: 15,      │
+│  ★ Skills (0┃   Tag Rule Pattern   v*                                                                  ┃▓▓command"   │
+│  ◎ Subagents┃ ▸ Immutable Release   ● ON                                                               ┃▓▓           │
+│  ⚡  Hooks & ┃                                                                                          ┃▓▓           │
+│  ⌘ MCP Serve┃                                                                                          ┃▓▓un_command"│
+│  ≡ Manifests┃                                                                                          ┃▓▓           │
+│  ⊞ Plugins (┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│ DEPLOY      ┃                                                                                          ┃▓▓guard": {  │
+│  ± Sync & Di┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓:          │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓: 15,      │
+│             ┃                                                                                          ┃▓▓command"   │
+│             ┃ Tab/Up/Down Field   Alt+Left/Right Tab   Enter Activate/Add   Ctrl+S Save   Esc Cancel   ┃▓▓           │
+│             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓           │
+│               ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓           │
+│                      │┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛│"edit_file|write_file"          │
+│                      │  h/l: Domain   j/k: Move   Space: Quick Toggle   E: Edit Form│      }                         │
+╰──────────────────────╯                                                              ╰────────────────────────────────╯
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs  ? Help  q Quit

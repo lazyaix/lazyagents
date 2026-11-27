@@ -5,6 +5,7 @@
 //! [`StudioCommand`] intents without performing any filesystem or network I/O.
 
 mod catalog_modal;
+mod engineering_forms;
 mod governance;
 mod modal;
 mod navigation;

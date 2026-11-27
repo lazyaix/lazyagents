@@ -104,8 +104,8 @@ pub(super) fn render_engineering(state: &AppState, frame: &mut Frame<'_>, area: 
 
     let hint = Paragraph::new(Line::from(Span::styled(
         i18n.pick(
-            "  h/l: Switch Domain   j/k: Move   Space/Enter: Toggle/Cycle & Auto-Recompile   e: Edit TOML",
-            "  h/l: 切换领域   j/k: 上下移动   Space/Enter: 切换并实时重编译   e: 外部编辑 TOML",
+            "  h/l: Domain   j/k: Move   Space: Quick Toggle   E: Edit Form   a: Add Entry   d: Delete   e: $EDITOR",
+            "  h/l: 切换领域   j/k: 移动   Space: 快速切换   E: 表单编辑   a: 新增条目   d: 删除   e: 外部编辑",
         ),
         theme.muted_style(),
     )))

@@ -406,12 +406,21 @@ impl AppState {
     }
 
     fn open_delete_confirm(&mut self) {
-        let Some(confirm) = ConfirmDeleteState::from_selection(
-            self.nav,
-            self.list_index,
-            self.section_index,
-            &self.workspace.manifest,
-        ) else {
+        let confirm = if self.nav == NavSection::Engineering {
+            ConfirmDeleteState::from_engineering_selection(
+                self.governance_domain,
+                self.governance_row,
+                &self.workspace.manifest,
+            )
+        } else {
+            ConfirmDeleteState::from_selection(
+                self.nav,
+                self.list_index,
+                self.section_index,
+                &self.workspace.manifest,
+            )
+        };
+        let Some(confirm) = confirm else {
             self.push_toast(
                 ToastLevel::Info,
                 self.i18n()
@@ -475,6 +484,7 @@ impl AppState {
         let Some((form, target)) = resource_forms::build_add_form(
             self.nav,
             self.list_index,
+            self.governance_domain,
             &self.workspace.manifest,
             self.i18n(),
         ) else {
@@ -482,8 +492,8 @@ impl AppState {
                 ToastLevel::Info,
                 self.i18n()
                     .pick(
-                        "Switch to an Antigravity resource view (4-9, Manifests, Plugins) to add items.",
-                        "请切换到 Antigravity 资源视图（4-9、索引清单、插件）以新建资源。",
+                        "Switch to Engineering or an Antigravity resource view to add items.",
+                        "请切换到工程治理或 Antigravity 资源视图以新建条目。",
                     )
                     .to_owned(),
             );
@@ -497,6 +507,8 @@ impl AppState {
             self.nav,
             self.list_index,
             self.section_index,
+            self.governance_domain,
+            self.governance_row,
             &self.workspace,
             self.i18n(),
         ) else {

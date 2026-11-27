@@ -225,6 +225,17 @@ impl AppState {
         } else if self.section_index >= sec_count {
             self.section_index = sec_count.saturating_sub(1);
         }
+        let gov_count = governance_rows(
+            self.governance_domain,
+            &self.workspace.manifest.engineering,
+            self.i18n(),
+        )
+        .len();
+        if gov_count == 0 {
+            self.governance_row = 0;
+        } else if self.governance_row >= gov_count {
+            self.governance_row = gov_count.saturating_sub(1);
+        }
     }
 
     fn switch_nav(&mut self, section: NavSection) {
