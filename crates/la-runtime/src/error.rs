@@ -62,6 +62,15 @@ pub enum RuntimeError {
         /// Human-readable failure reason.
         message: String,
     },
+
+    /// Hook formatter execution failed security or containment validation.
+    #[error("hook formatter `{rule_id}` error: {message}")]
+    HookExec {
+        /// Matched `[engineering.format.rules]` identifier.
+        rule_id: String,
+        /// Human-readable failure reason.
+        message: String,
+    },
 }
 
 impl RuntimeError {
@@ -69,6 +78,13 @@ impl RuntimeError {
         Self::Io {
             path: path.into(),
             message: err.to_string(),
+        }
+    }
+
+    pub(crate) fn hook_exec(rule_id: impl Into<String>, message: impl Into<String>) -> Self {
+        Self::HookExec {
+            rule_id: rule_id.into(),
+            message: message.into(),
         }
     }
 }

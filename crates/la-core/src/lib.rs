@@ -39,8 +39,9 @@ pub use crate::diff::{FileAction, FilePlan, WritePlan, plan_writes};
 pub use crate::engineering::EngineeringPolicy;
 pub use crate::error::CoreError;
 pub use crate::hook_eval::{
-    HookEvalContext, HookGuardKind, HookProtocol, PreToolUseOutput, StopHookOutput,
-    evaluate_hook_json,
+    FormatCommandPlan, HookActionOutcome, HookEvalContext, HookGuardKind, HookProtocol,
+    PreToolUseOutput, StopHookOutput, encode_hook_context_message, evaluate_hook_json,
+    evaluate_hook_outcome,
 };
 pub use crate::id::{
     HookEvent, KebabName, PolicyDecision, ResourceId, TargetKind, TargetOutputStrategy,
