@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::{MotionLevel, ShaderPreset, ThemeId, UiLang};
 use crate::editor::EditorAction;
+use crate::form::{FormAction, ModalFormState};
 use crate::media::DecodedRgbaImage;
 use crate::state::{
     FocusPane, GitHubAuditSnapshot, InspectorTab, LogEntry, ModalKind, NavSection, ToastLevel,
@@ -87,6 +88,26 @@ pub enum Action {
     OpenExternalEditor,
     /// Forward an editing keystroke into the active native grapheme editor.
     EditorInput(EditorAction),
+    /// Open the shadowed Delete Confirmation modal for the selected resource (`d`).
+    OpenDeleteConfirm,
+    /// Toggle purging the backing `.lazyagents/` source file in the Delete Confirmation modal.
+    ToggleDeletePurge,
+    /// Confirm and execute the queued resource deletion.
+    ConfirmDelete,
+    /// Open the fuzzy-searchable offline Built-in Catalog & Preset Picker (`C`).
+    OpenCatalogPicker,
+    /// Append a character into the Built-in Catalog Picker filter query.
+    CatalogInput(char),
+    /// Delete the last character in the Built-in Catalog Picker filter query.
+    CatalogBackspace,
+    /// Cycle the category filter pill inside the Built-in Catalog Picker (`Tab`).
+    CatalogCycleCategory,
+    /// Install the highlighted entry from the Built-in Catalog Picker (`Enter`).
+    CatalogConfirm,
+    /// Open a structured shadowed modal form populated with `ModalFormState`.
+    OpenForm(Box<ModalFormState>),
+    /// Route a keyboard or paste action into the active shadowed modal form.
+    FormInput(FormAction),
     /// Append a character into the `Ctrl+K` Command Palette filter query.
     PaletteInput(char),
     /// Delete the last character in the `Ctrl+K` Command Palette filter query.
@@ -206,6 +227,11 @@ pub enum StudioCommand {
         rel_path: String,
         /// Normalized UTF-8 text body.
         content: String,
+    },
+    /// Remove a `.lazyagents/` backing source file or directory when `--purge-files` is confirmed.
+    DeleteSourceFile {
+        /// `.lazyagents/`-relative POSIX path.
+        rel_path: String,
     },
     /// Execute `apply_write_plan` against disk (with optional `--force`).
     ApplySync {

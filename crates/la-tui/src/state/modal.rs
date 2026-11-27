@@ -281,6 +281,7 @@ fn build_playground_payload(guard: HookGuardKind, input: &str) -> String {
 pub fn all_palette_commands(i18n: I18n) -> Vec<PaletteCommand> {
     let mut commands = nav_palette_commands(i18n);
     commands.extend(action_palette_commands(i18n));
+    commands.extend(visual_palette_commands(i18n));
     commands
 }
 
@@ -394,6 +395,12 @@ fn action_palette_commands(i18n: I18n) -> Vec<PaletteCommand> {
             Action::OpenExternalEditor,
         ),
         cmd(
+            i18n.pick("Open Built-in Catalog Picker", "打开内置预设与能力目录"),
+            "CATALOG",
+            "C",
+            Action::OpenCatalogPicker,
+        ),
+        cmd(
             i18n.pick("Edit Selected Body Inline", "内置字素级编辑器编辑正文"),
             "EDIT",
             "i",
@@ -426,6 +433,11 @@ fn action_palette_commands(i18n: I18n) -> Vec<PaletteCommand> {
             "",
             Action::SelectInspectorTab(InspectorTab::Budget),
         ),
+    ]
+}
+
+fn visual_palette_commands(i18n: I18n) -> Vec<PaletteCommand> {
+    vec![
         cmd(
             i18n.pick(
                 "Cycle Theme (CyberNeon / Tokyo / Catppuccin)",

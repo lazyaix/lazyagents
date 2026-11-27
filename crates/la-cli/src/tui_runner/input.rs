@@ -2,7 +2,7 @@
 //! Kitty `Shift+Enter`, Bracketed Paste, Mouse click/scroll, Focus, Resize) into [`la_tui::Action`].
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseEventKind};
-use la_tui::{Action, AppState, EditorAction, EditorMode, ModalKind, NavSection};
+use la_tui::{Action, AppState, EditorAction, EditorMode, FormAction, ModalKind, NavSection};
 
 /// Translates a terminal [`Event`] into a semantic [`Action`] respecting active modals,
 /// native inline editing, Hook Playground typing, and Command Deck navigation.
@@ -36,6 +36,9 @@ pub(crate) fn translate_event(event: Event, state: &AppState) -> Option<Action> 
 }
 
 fn translate_paste(text: String, state: &AppState) -> Option<Action> {
+    if state.modal == Some(ModalKind::FormModal) {
+        return Some(Action::FormInput(FormAction::InsertStr(text)));
+    }
     if state.inline_edit.is_some() {
         return Some(Action::EditorInput(EditorAction::InsertStr(text)));
     }
@@ -55,7 +58,7 @@ fn translate_key(key: KeyEvent, state: &AppState) -> Option<Action> {
     }
 
     if let Some(modal) = state.modal {
-        return translate_modal_key(key, modal);
+        return translate_modal_key(key, modal, state);
     }
 
     if let Some(edit) = &state.inline_edit {
@@ -69,7 +72,7 @@ fn translate_key(key: KeyEvent, state: &AppState) -> Option<Action> {
     translate_deck_key(key, state)
 }
 
-const fn translate_modal_key(key: KeyEvent, modal: ModalKind) -> Option<Action> {
+fn translate_modal_key(key: KeyEvent, modal: ModalKind, state: &AppState) -> Option<Action> {
     match modal {
         ModalKind::CommandPalette => match key.code {
             KeyCode::Esc => Some(Action::CloseModal),
@@ -100,6 +103,71 @@ const fn translate_modal_key(key: KeyEvent, modal: ModalKind) -> Option<Action> 
             KeyCode::Esc | KeyCode::Char('?' | 'q') => Some(Action::CloseModal),
             _ => None,
         },
+        ModalKind::ConfirmDelete => match key.code {
+            KeyCode::Esc | KeyCode::Char('n' | 'q') => Some(Action::CloseModal),
+            KeyCode::Char(' ') => Some(Action::ToggleDeletePurge),
+            KeyCode::Enter | KeyCode::Char('y' | 'Y') => Some(Action::ConfirmDelete),
+            _ => None,
+        },
+        ModalKind::CatalogPicker => match key.code {
+            KeyCode::Esc => Some(Action::CloseModal),
+            KeyCode::Enter => Some(Action::CatalogConfirm),
+            KeyCode::Tab => Some(Action::CatalogCycleCategory),
+            KeyCode::Up => Some(Action::MoveUp),
+            KeyCode::Down => Some(Action::MoveDown),
+            KeyCode::Backspace => Some(Action::CatalogBackspace),
+            KeyCode::Char(ch) if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Some(Action::CatalogInput(ch))
+            }
+            _ => None,
+        },
+        ModalKind::FormModal => translate_form_modal_key(key, state),
+    }
+}
+
+fn translate_form_modal_key(key: KeyEvent, state: &AppState) -> Option<Action> {
+    if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('s') {
+        return Some(Action::FormInput(FormAction::Submit));
+    }
+    if key.modifiers.contains(KeyModifiers::ALT) {
+        return match key.code {
+            KeyCode::Right => Some(Action::FormInput(FormAction::NextTab)),
+            KeyCode::Left => Some(Action::FormInput(FormAction::PrevTab)),
+            KeyCode::Up => Some(Action::FormInput(FormAction::ReorderItem { up: true })),
+            KeyCode::Down => Some(Action::FormInput(FormAction::ReorderItem { up: false })),
+            _ => None,
+        };
+    }
+
+    let capturing_text = state
+        .active_form
+        .as_ref()
+        .is_some_and(la_tui::ModalFormState::is_text_capturing);
+
+    match key.code {
+        KeyCode::Esc => Some(Action::FormInput(FormAction::Cancel)),
+        KeyCode::Tab | KeyCode::Down => Some(Action::FormInput(FormAction::NextField)),
+        KeyCode::BackTab | KeyCode::Up => Some(Action::FormInput(FormAction::PrevField)),
+        KeyCode::Enter => Some(Action::FormInput(FormAction::Activate)),
+        KeyCode::Left => Some(Action::FormInput(FormAction::MoveLeft)),
+        KeyCode::Right => Some(Action::FormInput(FormAction::MoveRight)),
+        KeyCode::Home => Some(Action::FormInput(FormAction::MoveHome)),
+        KeyCode::End => Some(Action::FormInput(FormAction::MoveEnd)),
+        KeyCode::Backspace => Some(Action::FormInput(FormAction::Backspace)),
+        KeyCode::Delete => Some(Action::FormInput(FormAction::Delete)),
+        KeyCode::Char(' ') if !capturing_text => Some(Action::FormInput(FormAction::Activate)),
+        KeyCode::Char('a') if !capturing_text => Some(Action::FormInput(FormAction::AddItem)),
+        KeyCode::Char('d') if !capturing_text => Some(Action::FormInput(FormAction::RemoveItem)),
+        KeyCode::Char('K') if !capturing_text => {
+            Some(Action::FormInput(FormAction::ReorderItem { up: true }))
+        }
+        KeyCode::Char('J') if !capturing_text => {
+            Some(Action::FormInput(FormAction::ReorderItem { up: false }))
+        }
+        KeyCode::Char(ch) if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+            Some(Action::FormInput(FormAction::InsertChar(ch)))
+        }
+        _ => None,
     }
 }
 
@@ -202,6 +270,8 @@ fn translate_deck_key(key: KeyEvent, state: &AppState) -> Option<Action> {
         KeyCode::Char('y') => Some(Action::CopySelected),
         KeyCode::Char('e') => Some(Action::OpenExternalEditor),
         KeyCode::Char('i') => Some(Action::StartInlineEdit),
+        KeyCode::Char('d') => Some(Action::OpenDeleteConfirm),
+        KeyCode::Char('C') => Some(Action::OpenCatalogPicker),
         KeyCode::Char('c') => Some(Action::CycleItemProperty),
         KeyCode::Char('J') => Some(Action::ReorderItem { up: false }),
         KeyCode::Char('K') => Some(Action::ReorderItem { up: true }),

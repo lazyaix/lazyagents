@@ -1,6 +1,7 @@
 //! Root 3-Zone Ultra Cyberpunk Command Deck renderer and adaptive layout coordinator.
 
 mod dashboard;
+mod form_modal;
 mod governance;
 mod modals;
 mod resources;

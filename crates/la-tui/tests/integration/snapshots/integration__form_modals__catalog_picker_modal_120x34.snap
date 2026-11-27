@@ -1,0 +1,38 @@
+---
+source: crates/la-tui/tests/integration/form_modals.rs
+expression: rendered
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:23%  TOK:0/20000 │ ✕ 4  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+╭ ◆ DECK ──────────────╮┏ ◈ GOVERNANCE HEALTH ━━━━━┓╭ ⊞ STUDIO TELEMETRY ────────────╮╭ Preview   Diff   Lint   Budget ╮
+│ OVERVIEW             │┃██████                    ┃│§ 1  ★ 0  ◎ 0  ⚡  0  ⌘ 0        ││{                               │
+│▸ ◈ HUD Dashboard     │┃██████                    ┃│Compiled Outputs: 4  │  ✕ 4  ▲ 0││  "lazyagents-git-guard": {     │
+│                      │┃██████   23 / 100         ┃│Targets: Antigravity [ACTIVE]   ││    "PreToolUse": [             │
+│ GOVERNANCE  ┏ ★ OFFLINE CATALOG & PRESETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓             │
+│  ❖ Engineeri┃ ALL   PRESET   SKILL   MCP   GITHUB                                                      ┃▓▓           │
+│  ❖ GitHub Au┃ > mcp:git█                                                                               ┃▓▓           │
+│             ┃                                                                                          ┃▓▓:          │
+│ ANTIGRAVITY ┃ ▸ [MCP   ] mcp:github  Streamable HTTP GitHub MCP server preset (varia…                  ┃▓▓           │
+│  ▤ AGENTS.md┃                                                                                          ┃▓▓           │
+│  § Rules (1)┃                                                                                          ┃▓▓: 15,      │
+│  ★ Skills (0┃                                                                                          ┃▓▓command"   │
+│  ◎ Subagents┃                                                                                          ┃▓▓           │
+│  ⚡  Hooks & ┃                                                                                          ┃▓▓           │
+│  ⌘ MCP Serve┃                                                                                          ┃▓▓un_command"│
+│  ≡ Manifests┃                                                                                          ┃▓▓           │
+│  ⊞ Plugins (┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│ DEPLOY      ┃                                                                                          ┃▓▓guard": {  │
+│  ± Sync & Di┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓:          │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃ Type to Filter   Tab Category   Up/Down Select   Enter Install   Esc Close               ┃▓▓: 15,      │
+│             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓command"   │
+│               ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓           │
+│                      ││                            ││                              ││        ],                      │
+│                      ││                            ││                              ││        "matcher":              │
+╰──────────────────────╯╰────────────────────────────╯╰──────────────────────────────╯╰────────────────────────────────╯
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs  ? Help  q Quit
