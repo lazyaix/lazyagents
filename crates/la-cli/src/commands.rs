@@ -5,13 +5,16 @@ mod manage;
 mod workspace;
 
 use std::env;
-use std::io::{IsTerminal, Write};
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use la_tui::TuiConfig;
+use la_tui::TerminalCapabilities;
 
 use crate::cli::{Cli, Command};
+use crate::prefs::{
+    collect_terminal_env_hints, load_preferences_from, preferences_path, resolve_tui_config,
+};
 use crate::startup;
 
 /// Outcome of executing a CLI invocation, mapping deterministically to POSIX exit codes.
@@ -40,19 +43,19 @@ impl CommandOutcome {
 
 /// Dispatches parsed [`Cli`] arguments against explicit `out` and `err` writers.
 pub(crate) fn dispatch(cli: Cli, out: &mut impl Write, err: &mut impl Write) -> CommandOutcome {
-    let root = match resolve_workspace_root(cli.dir) {
+    let root = match resolve_workspace_root(cli.dir.clone()) {
         Ok(path) => path,
         Err(msg) => return CommandOutcome::RuntimeError(msg),
     };
 
     let Some(command) = cli.command else {
-        let tui = TuiConfig {
-            motion: cli.motion.into(),
-            show_splash: !cli.no_splash,
-            ..TuiConfig::default()
-        };
-        let is_tty = std::io::stdout().is_terminal() && !cli.no_tui;
-        return match startup::render_startup_banner(out, &tui, cli.lang, is_tty) {
+        let env_hints = collect_terminal_env_hints();
+        let caps = TerminalCapabilities::from_env_hints(&env_hints);
+        let saved = preferences_path()
+            .as_deref()
+            .and_then(load_preferences_from);
+        let tui = resolve_tui_config(&cli, caps, &env_hints, saved);
+        return match startup::render_startup_banner(out, &tui, tui.lang) {
             Ok(()) => CommandOutcome::Pass,
             Err(io_err) => CommandOutcome::RuntimeError(io_err.to_string()),
         };
