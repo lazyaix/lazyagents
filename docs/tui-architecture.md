@@ -12,9 +12,9 @@ For product positioning, Hybrid SSOT, and compiler architecture, see [docs/archi
 
 | Mode | Trigger | Viewport | Primary Use Case |
 | :--- | :--- | :--- | :--- |
-| **Fullscreen Config Studio (Default in TTY)** | `lazyagents` | `Viewport::Fullscreen` (Alternate Screen) | Project overview dashboard, 24 KB / 20k-token budget radar, Engineering Governance & GitHub Audit views, 8 Antigravity resource editors, live compiled preview & diff split, floating shadowed modals, `Ctrl+K` command palette, `en`/`zh` i18n, full L4 `TachyonFX` shaders |
+| **Fullscreen Config Studio (Default in TTY)** | `lazyagents` | `Viewport::Fullscreen` (Alternate Screen) | Project overview dashboard with **3D Governance Radar** (Push/Pull Context Efficiency & MCP Tax, OWASP ASI04 / Lethal Trifecta Security, 5-Target Compatibility & Drift), Engineering Governance (8 domains) & GitHub Audit views, resource editors & MCP 2026 / Format forms, 5-target live compiled preview & diff split, floating shadowed modals, `Ctrl+K` command palette, `en`/`zh` i18n, full L4 `TachyonFX` shaders |
 | **Inline Quick View (Optional)** | `lazyagents --inline` | `Viewport::Inline(height)` | Compact diagnostic/diff inspection preserving native terminal scrollback |
-| **Headless / CI CLI Mode** | Any subcommand (`check`, `generate`, `hook eval`, `github audit`, …) / `--no-tui` / non-TTY stdout | None (`la-tui` never initialized) | CI/CD merge gates, `lazyagents hook eval` stdin/stdout policy execution, scripts, and AI-agent automation |
+| **Headless / CI CLI Mode** | Any subcommand (`check`, `generate`, `rule test`, `pack fetch`, `hook eval`, `github audit`, …) / `--no-tui` / non-TTY stdout | None (`la-tui` never initialized) | CI/CD merge gates, `lazyagents hook eval` stdin/stdout policy execution, scripts, and AI-agent automation |
 
 **Architectural Consequence**: Because `la-tui` depends strictly on `la-core` (and never on `la-runtime`), both interactive TUI previews and headless CI `check`/`generate` runs execute the exact same compilation, budget calculation, secret scanning, and diff planning logic.
 
@@ -34,7 +34,9 @@ All selected crates MUST pass `deny.toml`'s zero-Copyleft permissive license pol
   - Syntax highlighting: **`syntect`** configured strictly with **`default-features = false, features = ["default-fancy"]`** (using the pure-Rust `fancy-regex` engine instead of the C `onig` library) for TOML, JSON (`hooks.json`, `mcp_config.json`, `plugin.json`), YAML (`.github/workflows/*.yml`), and Markdown, guaranteeing zero C-toolchain friction for `musl` static builds and cross-compilation.
 - **Rich Diff Viewer**: **`similar`** for unified and side-by-side diffs of whole-file outputs and managed fenced blocks (`CODEOWNERS`, `.gitignore`), with inline word-level change highlights.
 - **Dual-Mode Editing & `$VISUAL`/`$EDITOR` Handoff**:
-  - Typed structured forms for manifest fields (dropdowns, capability checklists, secret `${VAR}` builders, section reordering).
+  - Typed structured forms for manifest fields (dropdowns, capability checklists, MCP 2026 `auth`/`tool_loading`/`risk_surfaces` controls, `[engineering.format]` & `[engineering.shell_guard]` policies, secret `${VAR}` builders, section reordering).
+  - **5-Target Live Preview & Diff Switcher *(M4/M5)***: Cycle active target previews (`Antigravity`, `Claude Code`, `Codex`, `Cursor`, `GitHub Copilot`, or unified `All`) directly inside the preview/diff pane while displaying AAIF shared-output ownership and `LA012` compatibility notes.
+  - **3D Governance Radar Dashboard *(M4/M5)***: Replaces the single-axis budget meter with three synchronized pure-`la-core` telemetry panels — (1) **Context Push/Pull Efficiency** (hard caps, empirical lean targets, and Eager MCP schema tax), (2) **Agentic Security Radar** (`LA001`, `LA020`–`LA022`, Lethal Trifecta status, AgBOM summary), and (3) **Multi-Target Compatibility & Drift**.
   - Lightweight built-in multiline editor for quick body tweaks (`Enter` / `Shift+Enter` via Kitty Keyboard Protocol, fallback `Alt+Enter`/`Ctrl+J`) plus optional Vim navigation bindings.
   - Seamless external editor handoff (`e` key): cleanly restores terminal state via `DropGuard`, spawns `$VISUAL`/`$EDITOR` on the source file in `la-runtime`, and resumes the TUI with immediate re-lint, budget recalculation, and live diff refresh.
 - **Built-in `en` / `zh` Localization**: Complete bilingual UI string catalog (English default, `--lang en|zh`, locale auto-detection, live in-TUI toggle) with zero hardcoded display labels inside widgets.

@@ -54,7 +54,7 @@ lazyagents github audit           # Read-only live GitHub Rulesets & Immutable R
 
 ## What `lazyagents` Does
 
-`lazyagents` manages project-level AI coding agent configurations from a single deterministic **Hybrid SSOT** (`.lazyagents/`)—starting with full **Google Antigravity** support while reserving clean interfaces for **Claude Code**, **OpenAI Codex**, and **GitHub Copilot**:
+`lazyagents` manages project-level AI coding agent configurations from a single deterministic **Hybrid SSOT** (`.lazyagents/`)—shipping complete **Google Antigravity** support in V1 with an active M4/M5 roadmap expanding to a 5-target AAIF-first matrix (**Antigravity**, **Claude Code**, **OpenAI Codex**, **Cursor**, and **GitHub Copilot**):
 
 - **Dynamic `AGENTS.md` Composition**: Auto-probes repository facts, renders modular templates (`minijinja`), supports Monorepo nested `AGENTS.md`, and enforces Antigravity's **24 KB per-file** and **20,000-token** always-on context budgets.
 - **Complete Antigravity Project Suite**: Manages `AGENTS.md`, Conditional Rules (`.agents/rules/*.md`), Skills (`.agents/skills/`), Custom Subagents (`.agents/agents/*.md`), Lifecycle Hooks (`.agents/hooks.json`), MCP Servers (`.agents/mcp_config.json`), Index Manifests (`skills.json`/`rules.json`/`plugins.json`), and Project Plugins (`.agents/plugins/`).
@@ -86,6 +86,7 @@ cargo run --locked -- check --strict
 - **Rust Engineering Standards**: [docs/rust-standards.md](docs/rust-standards.md)
 - **TUI Architecture & Visual Spec**: [docs/tui-architecture.md](docs/tui-architecture.md)
 - **GitHub Workflow Specification**: [docs/git-workflow.md](docs/git-workflow.md)
+- **2026 AI Agent Methodology & Sources Research**: [docs/research/agent-methodology-2026.md](docs/research/agent-methodology-2026.md)
 - **Contributing Guide**: [CONTRIBUTING.md](CONTRIBUTING.md)
 - **AI Agent Guidelines**: [AGENTS.md](AGENTS.md)
 - **Security Policy**: [SECURITY.md](SECURITY.md)
