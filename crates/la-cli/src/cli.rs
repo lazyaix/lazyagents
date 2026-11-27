@@ -6,7 +6,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use la_core::manifest::{GitOutputMode, RuleTrigger};
 use la_core::{HookEvent, HookProtocol, TargetKind};
 use la_runtime::ImportSource;
-use la_tui::MotionLevel;
+use la_tui::{GlyphSet, MotionLevel, ShaderPreset, ThemeId, UiLang};
 
 /// `lazyagents` — Multi-Agent Project Configuration Studio, Engineering Governance Compiler,
 /// and Hook Policy Engine.
@@ -21,21 +21,48 @@ pub(crate) struct Cli {
     #[arg(short = 'C', long = "dir", global = true)]
     pub dir: Option<PathBuf>,
 
-    /// Interface language (`en` or `zh`).
-    #[arg(long, value_enum, default_value_t = CliLang::En, global = true)]
-    pub lang: CliLang,
+    /// Interface language override (`en` or `zh`, overriding `studio.toml` & locale hints).
+    #[arg(long, value_enum, global = true)]
+    pub lang: Option<CliLang>,
 
     /// Never launch the interactive TUI even when stdout is a TTY.
     #[arg(long, global = true)]
     pub no_tui: bool,
 
+    /// Visual theme override (`auto`, `cyber-neon`, `tokyo-night`, `catppuccin-mocha`, `catppuccin-latte`).
+    #[arg(long, value_enum, global = true)]
+    pub theme: Option<CliTheme>,
+
+    /// `TachyonFX` shader intensity preset (`cyber-overdrive`, `aurora-sweep`, `crisp-minimal`).
+    #[arg(long, value_enum, global = true)]
+    pub shader: Option<CliShader>,
+
     /// Visual motion tier for the TUI (`full`, `reduced`, `none`).
-    #[arg(long, value_enum, default_value_t = CliMotion::Full, global = true)]
-    pub motion: CliMotion,
+    #[arg(long, value_enum, global = true)]
+    pub motion: Option<CliMotion>,
+
+    /// Icon and box-drawing glyph fallback tier (`nerd-font`, `unicode`, `ascii`).
+    #[arg(long, value_enum, global = true)]
+    pub glyphs: Option<CliGlyphs>,
+
+    /// Launch the TUI in compact inline viewport mode preserving scrollback (`--inline` or `--inline=20`).
+    #[arg(
+        long,
+        value_name = "HEIGHT",
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "18",
+        global = true
+    )]
+    pub inline: Option<u16>,
 
     /// Disable the animated TUI startup splash banner.
     #[arg(long, global = true)]
     pub no_splash: bool,
+
+    /// Disable mouse capture inside the interactive TUI.
+    #[arg(long, global = true)]
+    pub no_mouse: bool,
 
     /// Subcommand to execute headlessly (omit in an interactive TTY to launch the TUI).
     #[command(subcommand)]
@@ -49,6 +76,73 @@ pub(crate) enum CliLang {
     En,
     /// Simplified Chinese.
     Zh,
+}
+
+impl From<CliLang> for UiLang {
+    fn from(value: CliLang) -> Self {
+        match value {
+            CliLang::En => Self::En,
+            CliLang::Zh => Self::Zh,
+        }
+    }
+}
+
+/// Built-in visual color theme selector mapped to [`ThemeId`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub(crate) enum CliTheme {
+    Auto,
+    CyberNeon,
+    TokyoNight,
+    CatppuccinMocha,
+    CatppuccinLatte,
+}
+
+impl From<CliTheme> for ThemeId {
+    fn from(value: CliTheme) -> Self {
+        match value {
+            CliTheme::Auto => Self::Auto,
+            CliTheme::CyberNeon => Self::CyberNeon,
+            CliTheme::TokyoNight => Self::TokyoNight,
+            CliTheme::CatppuccinMocha => Self::CatppuccinMocha,
+            CliTheme::CatppuccinLatte => Self::CatppuccinLatte,
+        }
+    }
+}
+
+/// `TachyonFX` shader preset selector mapped to [`ShaderPreset`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub(crate) enum CliShader {
+    CyberOverdrive,
+    AuroraSweep,
+    CrispMinimal,
+}
+
+impl From<CliShader> for ShaderPreset {
+    fn from(value: CliShader) -> Self {
+        match value {
+            CliShader::CyberOverdrive => Self::CyberOverdrive,
+            CliShader::AuroraSweep => Self::AuroraSweep,
+            CliShader::CrispMinimal => Self::CrispMinimal,
+        }
+    }
+}
+
+/// Glyph set fallback tier mapped to [`GlyphSet`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub(crate) enum CliGlyphs {
+    NerdFont,
+    Unicode,
+    Ascii,
+}
+
+impl From<CliGlyphs> for GlyphSet {
+    fn from(value: CliGlyphs) -> Self {
+        match value {
+            CliGlyphs::NerdFont => Self::NerdFont,
+            CliGlyphs::Unicode => Self::Unicode,
+            CliGlyphs::Ascii => Self::Ascii,
+        }
+    }
 }
 
 /// Motion accessibility tier mapped to [`MotionLevel`].

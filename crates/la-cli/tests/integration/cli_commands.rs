@@ -160,3 +160,115 @@ fn hook_eval_and_hook_test_enforce_guardrails_over_stdio() {
     let bad_cli = run_cli(root, &["--unknown-flag-xyz"]).unwrap();
     assert_eq!(bad_cli.status.code(), Some(2));
 }
+
+#[test]
+fn tui_cli_flags_and_studio_prefs_resolve_deterministically_in_no_tui_mode() {
+    let tmp = TempDir::new().unwrap();
+    let root = tmp.path();
+    let cfg_home = root.join("xdg-config");
+    fs::create_dir_all(cfg_home.join("lazyagents")).unwrap();
+    fs::write(
+        cfg_home.join("lazyagents/studio.toml"),
+        "theme = \"catppuccin-mocha\"\nshader_preset = \"crisp-minimal\"\nmotion = \"reduced\"\nlang = \"zh\"\n",
+    )
+    .unwrap();
+
+    let run_with_clean_env = |args: &[&str], extra_env: Option<(&str, &str)>| {
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_lazyagents"));
+        cmd.arg("-C")
+            .arg(root)
+            .args(args)
+            .env_remove("NO_COLOR")
+            .env_remove("SSH_CONNECTION")
+            .env_remove("SSH_TTY")
+            .env("TERM", "xterm-256color")
+            .env("COLORTERM", "truecolor")
+            .env("XDG_CONFIG_HOME", &cfg_home)
+            .env("APPDATA", &cfg_home);
+        if let Some((k, v)) = extra_env {
+            cmd.env(k, v);
+        }
+        cmd.output()
+    };
+
+    // 1. studio.toml preferences apply when CLI flags are omitted.
+    let from_prefs = run_with_clean_env(&["--no-tui", "--inline"], None).unwrap();
+    assert!(
+        from_prefs.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&from_prefs.stderr)
+    );
+    let prefs_text = String::from_utf8_lossy(&from_prefs.stdout);
+    assert!(
+        prefs_text.contains("theme=catppuccin-mocha"),
+        "stdout: {prefs_text}"
+    );
+    assert!(
+        prefs_text.contains("shader=crisp-minimal"),
+        "stdout: {prefs_text}"
+    );
+    assert!(
+        prefs_text.contains("Inline { height: 18 }"),
+        "stdout: {prefs_text}"
+    );
+    assert!(
+        prefs_text.contains("motion=reduced"),
+        "stdout: {prefs_text}"
+    );
+    assert!(
+        prefs_text.contains("L4 赛博朋克配置工作室"),
+        "stdout: {prefs_text}"
+    );
+
+    // 2. Explicit CLI flags override studio.toml.
+    let overridden = run_with_clean_env(
+        &[
+            "--no-tui",
+            "--theme",
+            "tokyo-night",
+            "--shader",
+            "aurora-sweep",
+            "--motion",
+            "full",
+            "--glyphs",
+            "unicode",
+            "--inline=22",
+            "--no-splash",
+            "--no-mouse",
+            "--lang",
+            "en",
+        ],
+        None,
+    )
+    .unwrap();
+    assert!(
+        overridden.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&overridden.stderr)
+    );
+    let en_text = String::from_utf8_lossy(&overridden.stdout);
+    assert!(en_text.contains("theme=tokyo-night"), "stdout: {en_text}");
+    assert!(en_text.contains("shader=aurora-sweep"), "stdout: {en_text}");
+    assert!(
+        en_text.contains("Inline { height: 22 }"),
+        "stdout: {en_text}"
+    );
+    assert!(en_text.contains("motion=full"), "stdout: {en_text}");
+    assert!(en_text.contains("Headless mode"), "stdout: {en_text}");
+
+    // 3. TERM=dumb degrades motion cleanly to `none`, and SSH degrades `full` to `reduced`.
+    let dumb_term =
+        run_with_clean_env(&["--no-tui", "--motion", "full"], Some(("TERM", "dumb"))).unwrap();
+    assert!(dumb_term.status.success());
+    let dumb_text = String::from_utf8_lossy(&dumb_term.stdout);
+    assert!(dumb_text.contains("motion=none"), "stdout: {dumb_text}");
+
+    let ssh_term = run_with_clean_env(
+        &["--no-tui", "--motion", "full"],
+        Some(("SSH_CONNECTION", "10.0.0.1 22 10.0.0.2 54321")),
+    )
+    .unwrap();
+    assert!(ssh_term.status.success());
+    let ssh_text = String::from_utf8_lossy(&ssh_term.stdout);
+    assert!(ssh_text.contains("motion=reduced"), "stdout: {ssh_text}");
+}
