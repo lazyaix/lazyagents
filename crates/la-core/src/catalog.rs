@@ -160,7 +160,7 @@ const SECTION_GIT_WORKFLOW: &str = r"## Git Workflow & Branch Isolation
 - **Never push directly to `{{ engineering.git.default_branch }}`**; use short-lived branches (`{{ engineering.git.branch_prefixes | join(', ') }}`).
 {% if engineering.git.worktree.enabled %}- **Use `git worktree`** for concurrent agent tasks (`{{ engineering.git.worktree.pattern }}`) so working trees and build caches never collide.
 {% endif %}- **Merge Strategy**: `{{ engineering.git.merge_strategy }}` with Conventional Commits (`{{ engineering.git.conventional_commits }}`).
-{% if engineering.git.stacked_prs %}- Keep PRs focused on one vertical slice; for stacked work, link `Depends on #<pr>` in the PR description.
+{% if engineering.git.stacked_prs %}- Keep PRs focused on one vertical slice.{% if engineering.git.merge_strategy == 'squash-only' %} Under `squash-only` merge, prefer **Sequential PRs** (merge PR 1 → sync `{{ engineering.git.default_branch }}` → branch PR 2); when stacking for async review, open downstream PRs as **Draft** with `Depends on #<pr>`, never use plain `git rebase` or GitHub *Update branch*, and restack after upstream squash-merges via `git rebase --update-refs --onto origin/{{ engineering.git.default_branch }} <old-parent-tip> <top-branch>` + `git push --force-with-lease`.{% else %} For stacked work, link `Depends on #<pr>` in the PR description.{% endif %}
 {% endif %}{% if engineering.protected_paths.entries | length > 0 %}- **Protected Paths** (require explicit human review): {% for entry in engineering.protected_paths.entries %}`{{ entry.glob }}`{% if not loop.last %}, {% endif %}{% endfor %}.
 {% endif %}";
 
@@ -249,15 +249,21 @@ description: Inspect failing GitHub Actions PR checks via gh CLI, diagnose root 
 
 const SKILL_STACKED_PR: &str = r"---
 name: stacked-pr
-description: Manage sequential Stacked Pull Requests using Depends-on links and git rebase --update-refs.
+description: Manage Sequential and Stacked Pull Requests safely under Squash-Only merge using Draft PRs, Depends-on links, and git rebase --update-refs --onto.
 ---
 
-# Stacked PR Workflow
+# Stacked PR Workflow (Squash-Only Safe)
 
-1. Keep the base layer PR minimal and reviewable first.
-2. Record `Depends on #<upstream-pr>` in downstream PR bodies.
-3. Propagate upstream review changes cleanly using `git rebase --update-refs`.
-4. After the base PR squash-merges, rebase the next PR onto `main` and retarget its base branch if needed.
+1. **Prefer Sequential PRs when merging rapidly**: merge the base PR into `main`, run `git fetch origin --prune`, fast-forward `main`, then branch the next PR from updated `main`.
+2. **When async review requires a stack**:
+   - Keep only the bottom PR (`base: main`) Ready; open downstream PRs as **Draft** (`gh pr create --draft`) with `Depends on #<upstream-pr>`.
+   - Propagate mid-review edits up the stack locally via `git rebase --update-refs` and `git push --force-with-lease`.
+3. **After an upstream PR squash-merges (critical)**:
+   - **Never** click GitHub's *Update branch* button or run plain `git rebase origin/main` (replays already-squashed parent commits and causes false conflicts).
+   - Skip the old pre-squash parent commit tip and restack the remaining chain cleanly:
+     `git fetch origin --prune && git rebase --update-refs --onto origin/main <old-parent-tip> <top-branch>`
+   - Force-push updated child branches safely with `git push --force-with-lease`.
+   - Confirm the newly promoted PR targets `main` with `MERGEABLE` status, then run `gh pr ready <pr>`.
 ";
 
 const SKILL_RELEASE_PREP: &str = r"---
@@ -405,6 +411,14 @@ mod tests {
             assert_eq!(skill.name, name);
             assert!(skill.skill_md.contains(&format!("name: {name}")));
         }
+
+        let stacked = builtin_skill_template("stacked-pr").expect("stacked-pr exists");
+        assert!(stacked.skill_md.contains("--update-refs --onto"));
+
+        let git_tpl = builtin_section_template("builtin:engineering/git-workflow")
+            .expect("git preset exists");
+        assert!(git_tpl.contains("squash-only"));
+        assert!(git_tpl.contains("--update-refs --onto"));
 
         let mcp = builtin_github_mcp_preset();
         assert_eq!(mcp.name.as_str(), "github");

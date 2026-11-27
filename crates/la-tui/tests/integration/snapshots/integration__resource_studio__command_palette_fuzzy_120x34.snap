@@ -2,7 +2,7 @@
 source: crates/la-tui/tests/integration/resource_studio.rs
 expression: rendered
 ---
- ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:0%  TOK:195/20000 │ ✕ 7  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:0%  TOK:280/20000 │ ✕ 7  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
 ╭ ◆ DECK ──────────────╮┏ ◈ GOVERNANCE HEALTH ━━━━━┓╭ ⊞ STUDIO TELEMETRY ────────────╮╭ Preview   Diff   Lint   Budget ╮
 │ OVERVIEW             │┃                          ┃│§ 1  ★ 0  ◎ 0  ⚡  0  ⌘ 1        ││{                               │
 │▸ ◈ HUD Dashboard     │┃                          ┃│Compiled Outputs: 7  │  ✕ 7  ▲ 0││  "lazyagents-git-guard": {     │

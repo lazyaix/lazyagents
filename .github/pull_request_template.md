@@ -5,6 +5,7 @@
 ## Related Issues / Dependencies
 
 <!-- Link issues (e.g., Closes #123) or upstream stacked PRs (e.g., Depends on #120). -->
+<!-- Under Squash-Only merge: prefer Sequential PRs; if stacking, keep downstream PRs as Draft and restack via `git rebase --update-refs --onto origin/main <old-parent-tip> <top-branch>` (never plain rebase or GitHub "Update branch") after upstream merges. -->
 - Closes #
 
 ## Type of Change

@@ -16,7 +16,18 @@ All AI coding agents working in `lazyaix/lazyagents` must follow these GitHub-fi
   git worktree add ../lazyagents-wt-<task> -b agent/<task> main
   ```
 - Use short-lived branches with descriptive prefixes: `feat/`, `fix/`, `refactor/`, `docs/`, `test/`, `ci/`, `chore/`, `agent/`.
-- Keep each PR small and focused on one logical vertical slice. For large changes, create **Stacked PRs** and record `Depends on #<pr>` in the PR description.
+- Keep each PR small and focused on one logical vertical slice.
+- **Default to Sequential PRs ("merge-then-branch") under Squash-and-Merge**: when actively iterating or driving rapid merges, land PR 1 into `main` first, `git fetch origin --prune` + fast-forward `main`, then branch PR 2 from the updated `main`. This prevents Squash-rewritten SHA conflicts and guarantees every PR immediately triggers all required CI checks.
+- **Stacked PR Restack Protocol (when async multi-PR review is genuinely required)**:
+  - Keep only the bottom PR (`base: main`) Ready for review; open all downstream stacked PRs as **Draft** (`gh pr create --draft`) with `Depends on #<pr>` in the description.
+  - **Never** click GitHub's *"Update branch"* button or run plain `git rebase origin/main` on a child PR after its parent was squash-merged (that replays already-squashed parent commits and produces false merge conflicts).
+  - Immediately after an upstream PR squash-merges into `main`, skip the old parent tip and restack the remaining chain cleanly:
+    ```bash
+    git fetch origin --prune
+    git rebase --update-refs --onto origin/main <old-parent-tip> <top-branch>
+    git push --force-with-lease origin <child-branch-1> [<child-branch-2> ...]
+    ```
+  - Confirm the new bottom PR targets `main` with `mergeable == MERGEABLE`, then mark it ready (`gh pr ready <pr>`) and monitor all required CI checks until green.
 
 ## 2. Pull Requests & Conventional Commits
 

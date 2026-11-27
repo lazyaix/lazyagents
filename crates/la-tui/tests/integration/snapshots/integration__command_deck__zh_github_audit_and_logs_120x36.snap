@@ -2,7 +2,7 @@
 source: crates/la-tui/tests/integration/command_deck.rs
 expression: rendered
 ---
- ◆ LAZYAGENTS  lazyagents │  存 在 漂 移   HP:5%  TOK:179/20000 │ ✕ 5  ▲ 0 │ Cyber Neon | cyber-overdrive | ZH
+ ◆ LAZYAGENTS  lazyagents │  存 在 漂 移   HP:5%  TOK:264/20000 │ ✕ 5  ▲ 0 │ Cyber Neon | cyber-overdrive | ZH
 ╭ ◆ DECK ──────────────╮╭ ❖ 实 时 只 读  GitHub 治 理 审 计  (gh CLI) ───────────────────────╮╭ 编 译 预 览    差 异 对 比    合 规 诊 断  ╮
 │ 全 局 总 览              ││审 计 仓 库 : lazyaix/lazyagents                                ││{                               │
 │  ◈ 赛 博 仪 表 盘         ││                                                            ││  "lazyagents-git-guard": {     │

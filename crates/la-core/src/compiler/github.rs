@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 use crate::catalog::builtin_github_scaffold;
 use crate::compiler::{CompileInputs, CompileOutput, GeneratedFile};
-use crate::engineering::AiDisclosureMode;
+use crate::engineering::{AiDisclosureMode, MergeStrategy};
 use crate::error::CoreError;
 use crate::lock::ManagedRegionStyle;
 use crate::manifest::{GitOutputMode, ProjectManifest};
@@ -150,6 +150,13 @@ fn compile_pr_template(manifest: &ProjectManifest) -> GeneratedFile {
         "## Summary\n\n<!-- Describe what this PR changes and why. -->\n\n## Related Issues / Dependencies\n\n",
     );
     if manifest.engineering.git.stacked_prs {
+        if manifest.engineering.git.merge_strategy == MergeStrategy::SquashOnly {
+            let branch = &manifest.engineering.git.default_branch;
+            let _ = writeln!(
+                body,
+                "<!-- Under squash-only merge: keep downstream stacked PRs as Draft and restack via `git rebase --update-refs --onto origin/{branch} <old-parent-tip> <top-branch>` after upstream merges. -->"
+            );
+        }
         body.push_str("- Closes #\n- Depends on #\n\n");
     } else {
         body.push_str("- Closes #\n\n");
