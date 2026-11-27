@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "entries": {
+    ".agents/agents/rust-reviewer.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "39d1e7f23945efb440fc7736cab01564d9fc08bddbf93173ceedc656acd29f92"
+    },
+    ".agents/hooks.json": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "03074319abb58c36752159360324016d3556bf0b356ce86445db16f3d08ce4d0"
+    },
+    ".agents/rules/arch-la-cli.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "40c8f23eae7729383cd5fc04444af5776958da61a0c9ff8915660282aa3e4786"
+    },
+    ".agents/rules/arch-la-core.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "d9cb73d3d7b4db2620bd790da4eb59c2f0f3776248367e0001fec9d1bdc90823"
+    },
+    ".agents/rules/arch-la-runtime.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "a15476500774ad419815ebe0e7e8403c7dcedc36353dc1b2166020e47b7b4b22"
+    },
+    ".agents/rules/arch-la-tui.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "cdc1315ad01da9a06eb22f952e33158011524f2bf6e3eb61671dd3f1d4416495"
+    },
+    ".agents/rules/rust-module-hygiene.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "84a997f96f9621f1e592a28e623e97a656b910027c606ad1f671202f6bf05500"
+    },
+    ".agents/rules/tui-visual-tokens.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "73517121a6dcd0fc75ea1768e91ff73039ca380f073dc17b100ae77607f896f3"
+    },
+    ".agents/skills/ci-remediation/SKILL.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "3cd6574ab7d92a3cde8ae1d4bf2321722f48368221147da226202cad9df70b81"
+    },
+    ".agents/skills/pr-author/SKILL.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "1dbbefcc952182f962752099097f4b1eb7baf43a48da89523d5dd557772080bc"
+    },
+    ".agents/skills/stacked-pr/SKILL.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "fea3b0bdd64478833a621e28abdf08227fbec7dcc7734300f8519f12a53f6319"
+    },
+    ".agents/skills/worktree-isolation/SKILL.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "fbb24137825c07fdc4bf2776c8f942645abe60cd0cf5065b3924a7283a103939"
+    },
+    ".github/CODEOWNERS": {
+      "ownership": {
+        "mode": "managed_region",
+        "style": "hash_comment"
+      },
+      "sha256": "e447c42b10298a7ffc1dd87eaaf5caca05185621eac86766eb5e6ad1fe35768f"
+    },
+    ".github/pull_request_template.md": {
+      "ownership": {
+        "mode": "managed_region",
+        "style": "html_comment"
+      },
+      "sha256": "05afb7cdb0f9d4487b2163daad219d3f43be27f9d8ed061071e167c856e372e8"
+    },
+    ".github/workflows/lazyagents.yml": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "cd76dec0f3efc38e2fe56e2649c2a5d81380b386481f71c15d3c5b196569fd26"
+    },
+    ".gitignore": {
+      "ownership": {
+        "mode": "managed_region",
+        "style": "hash_comment"
+      },
+      "sha256": "ae9f1d49cccd2c98e8cbfcf3273e4d26888c6367a5ecd92e29a88854b063eec7"
+    },
+    "AGENTS.md": {
+      "ownership": {
+        "mode": "whole_file"
+      },
+      "sha256": "da32550f9f993fac094b211f837dd1ff15cc34c2e5c6483ac6123cf1fb24745d"
+    }
+  }
+}
