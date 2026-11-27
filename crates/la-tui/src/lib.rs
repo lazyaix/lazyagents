@@ -44,7 +44,7 @@ pub use crate::protocol::{
 pub use crate::state::{
     AppState, AuditCheckView, AuditStatusView, CatalogCategory, CatalogEntryKind, CatalogItem,
     CatalogPickerState, CommandPaletteState, ConfirmDeleteState, DeckVisibility, DeleteTarget,
-    DiffStyle, FocusPane, GitHubAuditSnapshot, GovernanceDomain, HookPlaygroundState,
+    DiffStyle, FocusPane, FormTarget, GitHubAuditSnapshot, GovernanceDomain, HookPlaygroundState,
     HookVerdictView, InitWizardState, InlineEditState, InspectorTab, LogEntry, LogLevel, ModalKind,
     NavSection, ToastLevel, WorkspaceSnapshot,
 };

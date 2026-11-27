@@ -354,6 +354,13 @@ fn render_help_modal(state: &AppState, frame: &mut Frame<'_>, area: Rect) {
             ),
         ),
         (
+            "a / A / E / d / C",
+            i18n.pick(
+                "Add Resource / New Plan / Edit Form / Delete / Catalog",
+                "新建资源 / 新建计划 / 表单编辑 / 删除 / 内置目录",
+            ),
+        ),
+        (
             "i / e",
             i18n.pick(
                 "Native Grapheme Inline Editor / External $EDITOR",

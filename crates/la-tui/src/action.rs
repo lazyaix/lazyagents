@@ -104,6 +104,12 @@ pub enum Action {
     CatalogCycleCategory,
     /// Install the highlighted entry from the Built-in Catalog Picker (`Enter`).
     CatalogConfirm,
+    /// Open a structured shadowed modal form to add a new resource in the active view (`a`).
+    OpenAddResource,
+    /// Open a structured shadowed modal form to add a new Monorepo `*/AGENTS.md` plan (`A`).
+    OpenAddInstructionPlan,
+    /// Open a structured shadowed modal form to edit the selected resource (`E`).
+    OpenEditResource,
     /// Open a structured shadowed modal form populated with `ModalFormState`.
     OpenForm(Box<ModalFormState>),
     /// Route a keyboard or paste action into the active shadowed modal form.

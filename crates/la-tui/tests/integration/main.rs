@@ -2,5 +2,6 @@
 
 mod command_deck;
 mod form_modals;
+mod resource_forms_e2e;
 mod resource_studio;
 mod visual_engine;

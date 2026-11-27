@@ -8,6 +8,7 @@ mod catalog_modal;
 mod governance;
 mod modal;
 mod navigation;
+mod resource_forms;
 mod resources;
 mod snapshot;
 mod sync_audit;
@@ -36,6 +37,7 @@ pub use self::modal::{
     CommandPaletteState, FilteredPaletteEntry, HookPlaygroundState, HookVerdictView,
     InitWizardState, InlineEditState, PaletteCommand, all_palette_commands,
 };
+pub use self::resource_forms::FormTarget;
 pub use self::snapshot::{
     AuditCheckView, AuditStatusView, GitHubAuditSnapshot, LogEntry, LogLevel, LogRingBuffer,
     ToastLevel, ToastMessage, WorkspaceSnapshot,
@@ -211,6 +213,8 @@ pub struct AppState {
     pub wizard: InitWizardState,
     /// Active reusable shadowed structured form modal state (when `modal == Some(FormModal)`).
     pub active_form: Option<ModalFormState>,
+    /// Target entity modified when submitting `active_form` (if opened via resource CRUD).
+    pub active_form_target: Option<FormTarget>,
     /// Active shadowed delete confirmation modal state (when `modal == Some(ConfirmDelete)`).
     pub delete_confirm: Option<ConfirmDeleteState>,
     /// Interactive offline Built-in Catalog & Preset Picker state.
@@ -287,6 +291,7 @@ impl AppState {
             palette: CommandPaletteState::default(),
             wizard: InitWizardState::default(),
             active_form: None,
+            active_form_target: None,
             delete_confirm: None,
             catalog: CatalogPickerState::default(),
             playground: HookPlaygroundState::default(),
@@ -380,6 +385,9 @@ impl AppState {
             | Action::CatalogBackspace
             | Action::CatalogCycleCategory
             | Action::CatalogConfirm
+            | Action::OpenAddResource
+            | Action::OpenAddInstructionPlan
+            | Action::OpenEditResource
             | Action::OpenForm(_)
             | Action::FormInput(_) => self.update_form_or_catalog(action),
             Action::PaletteInput(_)
@@ -422,6 +430,7 @@ impl AppState {
             Action::CloseModal => {
                 self.modal = None;
                 self.active_form = None;
+                self.active_form_target = None;
                 self.delete_confirm = None;
                 Vec::new()
             }

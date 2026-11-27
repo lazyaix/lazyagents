@@ -270,6 +270,11 @@ fn translate_deck_key(key: KeyEvent, state: &AppState) -> Option<Action> {
         KeyCode::Char('y') => Some(Action::CopySelected),
         KeyCode::Char('e') => Some(Action::OpenExternalEditor),
         KeyCode::Char('i') => Some(Action::StartInlineEdit),
+        KeyCode::Char('a') => Some(Action::OpenAddResource),
+        KeyCode::Char('A') if state.nav == NavSection::Instructions => {
+            Some(Action::OpenAddInstructionPlan)
+        }
+        KeyCode::Char('E') => Some(Action::OpenEditResource),
         KeyCode::Char('d') => Some(Action::OpenDeleteConfirm),
         KeyCode::Char('C') => Some(Action::OpenCatalogPicker),
         KeyCode::Char('c') => Some(Action::CycleItemProperty),
@@ -297,5 +302,84 @@ fn translate_deck_key(key: KeyEvent, state: &AppState) -> Option<Action> {
         KeyCode::Char('9') => Some(Action::SelectNav(NavSection::McpServers)),
         KeyCode::Char('0') => Some(Action::SelectNav(NavSection::SyncDiff)),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use la_core::{ProjectFacts, ProjectManifest};
+    use la_tui::{TerminalCapabilities, TuiConfig, WorkspaceSnapshot};
+
+    use super::*;
+
+    fn deck_state(nav: NavSection) -> AppState {
+        let ws = WorkspaceSnapshot::from_manifest(
+            "/repo",
+            true,
+            ProjectManifest::default(),
+            ProjectFacts::default(),
+            BTreeMap::new(),
+            BTreeMap::new(),
+            None,
+        );
+        let cfg = TuiConfig {
+            show_splash: false,
+            ..TuiConfig::default()
+        };
+        let mut state = AppState::new(cfg, TerminalCapabilities::default(), ws);
+        state.nav = nav;
+        state
+    }
+
+    #[test]
+    fn deck_shortcuts_route_add_edit_plan_delete_and_catalog_actions() {
+        let inst_state = deck_state(NavSection::Instructions);
+        assert_eq!(
+            translate_event(
+                Event::Key(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE)),
+                &inst_state,
+            ),
+            Some(Action::OpenAddResource)
+        );
+        assert_eq!(
+            translate_event(
+                Event::Key(KeyEvent::new(KeyCode::Char('A'), KeyModifiers::SHIFT)),
+                &inst_state,
+            ),
+            Some(Action::OpenAddInstructionPlan)
+        );
+        assert_eq!(
+            translate_event(
+                Event::Key(KeyEvent::new(KeyCode::Char('E'), KeyModifiers::SHIFT)),
+                &inst_state,
+            ),
+            Some(Action::OpenEditResource)
+        );
+
+        let rules_state = deck_state(NavSection::Rules);
+        assert_eq!(
+            translate_event(
+                Event::Key(KeyEvent::new(KeyCode::Char('A'), KeyModifiers::SHIFT)),
+                &rules_state,
+            ),
+            None
+        );
+        assert_eq!(
+            translate_event(
+                Event::Key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE)),
+                &rules_state,
+            ),
+            Some(Action::OpenDeleteConfirm)
+        );
+        assert_eq!(
+            translate_event(
+                Event::Key(KeyEvent::new(KeyCode::Char('C'), KeyModifiers::SHIFT)),
+                &rules_state,
+            ),
+            Some(Action::OpenCatalogPicker)
+        );
     }
 }

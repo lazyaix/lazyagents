@@ -1,0 +1,40 @@
+---
+source: crates/la-tui/tests/integration/resource_forms_e2e.rs
+expression: rendered
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:41%  TOK:0/20000 │ ✕ 3  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+╭ ◆ DECK ──────────────╮┏ ⌘ MCP Servers ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓╭ Preview   Diff   Lint   Budget ╮
+│ OVERVIEW             │┃No MCP servers configured.                                  ┃│{                               │
+│  ◈ HUD Dashboard     │┃                                                            ┃│  "custom-lint-guard": {        │
+│                      │┃                                                            ┃│    "PreToolUse": [             │
+│ GOVERNANCE  ┏ ◆ Add MCP Server ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓             │
+│  ❖ Engineeri┃  Transport   Vars & Headers [antigravity]                                                ┃▓▓           │
+│  ❖ GitHub Au┃                                                                                          ┃▓▓           │
+│             ┃   Headers / Env      (1 entries — Enter to add, d remove)                                ┃▓▓:          │
+│ ANTIGRAVITY ┃     Authorization = Bearer ${DOCS_TOKEN}                                                 ┃▓▓           │
+│  ▤ AGENTS.md┃ ▸ Setup Variables    (1 entries — Enter to add, d remove)                                ┃▓▓           │
+│  § Rules (0)┃     DOCS_TOKEN | Docs API Token | Read-only docs bearer token                            ┃▓▓: 20,      │
+│  ★ Skills (0┃                                                                                          ┃▓▓command"   │
+│  ◎ Subagents┃                                                                                          ┃▓▓           │
+│  ⚡  Hooks & ┃                                                                                          ┃▓▓           │
+│▸ ⌘ MCP Serve┃                                                                                          ┃▓▓           │
+│  ≡ Manifests┃                                                                                          ┃▓▓e"         │
+│  ⊞ Plugins (┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│ DEPLOY      ┃                                                                                          ┃▓▓           │
+│  ± Sync & Di┃                                                                                          ┃▓▓rd": {     │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓:          │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓           │
+│             ┃                                                                                          ┃▓▓: 15,      │
+│             ┃ Tab/Up/Down Field   Alt+Left/Right Tab   Enter Activate/Add   Ctrl+S Save   Esc Cancel   ┃▓▓command"   │
+│             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓           │
+│               ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓━━━━━━━━━┓ │
+│                      ││                                                         ┃ Added hook `custom-lint-guard`   ┃▓▓
+│                      ││                                                         ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓
+╰──────────────────────╯╰───────────────────────────────────────────────────────────▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs  ? Help  q Quit
