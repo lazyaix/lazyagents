@@ -9,7 +9,21 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+base64.workspace = true
 la-core.workspace = true
+pulldown-cmark.workspace = true
+ratatui.workspace = true
+serde.workspace = true
+similar.workspace = true
+syntect.workspace = true
+tachyonfx.workspace = true
+thiserror.workspace = true
+unicode-segmentation.workspace = true
+unicode-width.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+proptest.workspace = true
 
 [lints]
 workspace = true
