@@ -3,6 +3,7 @@
 //! This crate depends strictly on [`la_core`] and must never depend on `la-runtime`,
 //! ensuring fast compilation and deterministic headless visual tests.
 
+pub mod action;
 mod config;
 pub mod editor;
 pub mod effects;
@@ -10,10 +11,13 @@ mod error;
 pub mod highlight;
 pub mod i18n;
 pub mod protocol;
+pub mod state;
 mod status;
 pub mod text;
 pub mod theme;
+pub mod views;
 
+pub use crate::action::{Action, StudioCommand, StudioPreferences};
 pub use crate::config::{
     ColorProfile, DEFAULT_ACTIVE_FPS, DEFAULT_INLINE_HEIGHT, GlyphSet, MotionLevel, ShaderPreset,
     ThemeId, TuiConfig, UiLang, ViewportMode,
@@ -30,5 +34,11 @@ pub use crate::protocol::{
     BackgroundTone, DEC_2026_BEGIN_SYNC, DEC_2026_END_SYNC, GraphicsProtocolKind, ProgressBarState,
     TerminalCapabilities, TerminalEnvHints, TransportTier,
 };
+pub use crate::state::{
+    AppState, AuditCheckView, AuditStatusView, DeckVisibility, DiffStyle, FocusPane,
+    GitHubAuditSnapshot, GovernanceDomain, InspectorTab, LogEntry, LogLevel, ModalKind, NavSection,
+    ToastLevel, WorkspaceSnapshot,
+};
 pub use crate::status::{budget_status_color, policy_decision_badge, status_label};
 pub use crate::theme::{GlyphPalette, ResolvedTheme, Theme};
+pub use crate::views::render_studio;

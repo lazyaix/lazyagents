@@ -1,0 +1,44 @@
+---
+source: crates/la-tui/tests/integration/command_deck.rs
+expression: buffer_to_text(&term_120)
+---
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:5%  TOK:179/20000 │ ✕ 5  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+╭ ◆ DECK ──────────────╮┏ ◈ GOVERNANCE HEALTH ━━━━━┓╭ ⊞ STUDIO TELEMETRY ────────────╮╭ Preview   Diff   Lint   Budget ╮
+│ OVERVIEW             │┃█                         ┃│§ 1  ★ 0  ◎ 0  ⚡  0  ⌘ 0        ││{                               │
+│▸ ◈ HUD Dashboard     │┃█                         ┃│Compiled Outputs: 5  │  ✕ 5  ▲ 0││  "lazyagents-git-guard": {     │
+│                      │┃█        5 / 100          ┃│Targets: Antigravity [ACTIVE]   ││    "PreToolUse": [             │
+│ GOVERNANCE           │┃█                         ┃│                                ││      {                         │
+│  ❖ Engineering       │┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛╰────────────────────────────────╯│        "hooks": [              │
+│  ❖ GitHub Audit      │┏ ⚡  CONTEXT BUDGET RADAR (179/20000 tok) ━━━━━━━━━━━━━━━━━━━┓│          {                     │
+│                      │┃100%│                                                       ┃│            "command":          │
+│ ANTIGRAVITY          │┃    │                                                       ┃│"lazyagents hook eval           │
+│  ▤ AGENTS.md (1)     │┃    │                                                       ┃│git-guard",                     │
+│  § Rules (1)         │┃    │                                                       ┃│            "timeout": 15,      │
+│  ★ Skills (0)        │┃    │                                                       ┃│            "type": "command"   │
+│  ◎ Subagents (0)     │┃    │                                                       ┃│          }                     │
+│  ⚡  Hooks & Lab (0)  │┃    │                                                       ┃│        ],                      │
+│  ⌘ MCP Servers (0)   │┃    │                                                       ┃│        "matcher": "run_command"│
+│  ≡ Manifests (3)     │┃    │                                                       ┃│      }                         │
+│  ⊞ Plugins (0)       │┃80% │                                                       ┃│    ]                           │
+│                      │┃    │                                                       ┃│  },                            │
+│ DEPLOY               │┃    │                                                       ┃│  "lazyagents-secret-guard": {  │
+│  ± Sync & Diff (5)   │┃    │                                                       ┃│    "PreToolUse": [             │
+│                      │┃    │                                                       ┃│      {                         │
+│                      │┃    │                                                       ┃│        "hooks": [              │
+│                      │┃    │                                                       ┃│          {                     │
+│                      │┃    │                                                       ┃│            "command":          │
+│                      │┃0%  │⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶┃│"lazyagents hook eval           │
+│                      │┃    └───────────────────────────────────────────────────────┃│secret-guard",                  │
+│                      │┃    0                                                2 files┃│            "timeout": 15,      │
+│                      │┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛│            "type": "command"   │
+│                      │✓ All instruction & rule files are safely within Antigravity's│          }                     │
+│                      │24 KB / 20k-token context budgets.                            │        ],                      │
+│                      │                                                              │        "matcher":              │
+│                      │╭ ⛨ ACTIVE SCOPES ───────────╮╭ ▤ PROBED REPO FACTS ─────────╮│"edit_file|write_file"          │
+│                      ││Layers: project             ││Languages: Rust               ││      }                         │
+│                      ││Git Mode: Commit            ││Toolchain: 1.100.0            ││    ]                           │
+│                      ││Root: /workspace/lazyagents ││GitHub Repo: lazyaix/lazyagent││  }                             │
+│                      ││                            ││                              ││}                               │
+│                      ││                            ││                              ││                                │
+╰──────────────────────╯╰────────────────────────────╯╰──────────────────────────────╯╰────────────────────────────────╯
+Ctrl+K Palette  Tab Pane  s Sync  e $EDITOR  t Theme  p Shader  L EN/ZH  ~ Logs  ? Help  q Quit

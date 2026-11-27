@@ -18,6 +18,7 @@ similar.workspace = true
 syntect.workspace = true
 tachyonfx.workspace = true
 thiserror.workspace = true
+tui-big-text.workspace = true
 unicode-segmentation.workspace = true
 unicode-width.workspace = true
 
