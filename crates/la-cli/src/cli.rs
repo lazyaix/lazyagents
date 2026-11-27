@@ -8,12 +8,19 @@ use la_core::{HookEvent, HookProtocol, TargetKind};
 use la_runtime::ImportSource;
 use la_tui::{GlyphSet, MotionLevel, ShaderPreset, ThemeId, UiLang};
 
+/// Effective CLI version string (`LAZYAGENTS_RELEASE_VERSION` when built from a manual release
+/// tag, falling back to `CARGO_PKG_VERSION`).
+pub(crate) const APP_VERSION: &str = match option_env!("LAZYAGENTS_RELEASE_VERSION") {
+    Some(version) => version,
+    None => env!("CARGO_PKG_VERSION"),
+};
+
 /// `lazyagents` — Multi-Agent Project Configuration Studio, Engineering Governance Compiler,
 /// and Hook Policy Engine.
 #[derive(Debug, Parser)]
 #[command(
     name = "lazyagents",
-    version,
+    version = APP_VERSION,
     about = "Multi-Agent Project Configuration Studio, Engineering Governance Compiler, and Hook Policy Engine"
 )]
 pub(crate) struct Cli {

@@ -14,7 +14,7 @@ This document is the authoritative specification for Git collaboration, GitHub R
 | **Branching Model** | Modern GitHub Flow / Trunk-Based Development (TBD) |
 | **Merge Strategy** | **Squash and Merge only** (linear history, `PR_TITLE` as commit subject, `PR_BODY` as commit body, auto-delete head branch) |
 | **Commit Standard** | [Conventional Commits 1.0.0](https://www.conventionalcommits.org/) enforced on PR titles |
-| **Release Engine** | [`release-plz`](https://release-plz.dev/) (automated Release PR + `CHANGELOG.md` + `v*` tag + Immutable GitHub Release) |
+| **Release Engine** | **Manual Git Tag (`vX.Y.Z`)** → `.github/workflows/release.yml` (5-platform prebuilt archives + `checksums.txt` + SLSA provenance + `lazyagents-installer.sh` + Homebrew Formula + Immutable GitHub Release) |
 
 ---
 
@@ -171,30 +171,22 @@ GitHub App installation access tokens (`ghs_*`, including GitHub Actions `GITHUB
 
 ---
 
-## 5. Automated Releases (`release-plz`)
+## 5. Manual Tag-Only Multi-Platform Releases (`.github/workflows/release.yml`)
 
-`release-plz` runs on pushes to `main` via `.github/workflows/release-plz.yml` and `release-plz.toml`:
+Version upgrades and releases happen **strictly when a human maintainer manually creates and pushes a semantic Git tag (`vX.Y.Z`)** — CI never automatically bumps `Cargo.toml` versions or opens release PRs on pushes to `main`.
 
-1. **Continuous Release PR**: On each merge to `main`, `release-plz` analyzes Conventional Commits since the last tag and opens/updates a Release PR bumping `Cargo.toml`/`Cargo.lock` and updating `CHANGELOG.md`.
-2. **Human Release Gate**: Merging the Release PR triggers `release-plz release`, which creates the `vX.Y.Z` tag and publishes an **Immutable GitHub Release**.
-3. **GitHub App Token Setup (Enterprise Compliant)**: Because the `lazyaix` enterprise policy restricts default `GITHUB_TOKEN` from creating PRs, `.github/workflows/release-plz.yml` mints short-lived, repo-scoped, auto-revoked installation tokens via SHA-pinned `actions/create-github-app-token@v3.4.0` (using `client-id` and explicit least-privilege `permission-*` downscoping). This also ensures Release PRs trigger all 6 required PR CI checks and release tags trigger downstream tag workflows (e.g., `cargo-dist`):
-   - Create a GitHub App under `lazyaix` (Webhook **Inactive**; Repository permissions: **Contents: Read & Write**, **Pull requests: Read & Write**).
-   - Install the App only on `lazyaix/lazyagents`.
-   - Configure repository Actions variable `RELEASE_PLZ_APP_CLIENT_ID` (the App's Client ID) and repository Actions secret `RELEASE_PLZ_APP_PRIVATE_KEY` (the generated `.pem` private key).
-   - Until `RELEASE_PLZ_APP_CLIENT_ID` is set, both `Release-plz` jobs skip cleanly without failing `main`.
-
-```yaml
-- name: Mint GitHub App token
-  id: app-token
-  uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
-  with:
-    client-id: ${{ vars.RELEASE_PLZ_APP_CLIENT_ID }}
-    private-key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
-    permission-contents: write
-    permission-pull-requests: write
-```
-
-Pass `${{ steps.app-token.outputs.token }}` directly to `release-plz/action` as `GITHUB_TOKEN` (no `X-GitHub-Stateless-S2S-Token` override needed).
+1. **Tag Push Trigger (`on: push: tags: ["v*"]`)**:
+   ```bash
+   git checkout main && git pull --ff-only
+   git tag -a v0.1.1 -m "Release v0.1.1"
+   git push origin v0.1.1
+   ```
+2. **5-Platform Build & Provenance**: `.github/workflows/release.yml` compiles optimized stripped binaries (`--profile dist --locked`) with `LAZYAGENTS_RELEASE_VERSION="${TAG_NAME#v}"` across `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, and `x86_64-pc-windows-msvc`, generates `checksums.txt`, `lazyagents-installer.sh`, and a multi-platform Homebrew Formula (`lazyagents.rb`), signs SLSA build provenance (`actions/attest-build-provenance`), and publishes an **Immutable GitHub Release** atomically.
+3. **Optional Automatic Homebrew Tap Sync (`lazyaix/homebrew-tap`)**:
+   - Create `lazyaix/homebrew-tap` under `lazyaix` and install a repo-scoped GitHub App (Webhook **Inactive**; Repository permissions: **Contents: Read & Write**).
+   - Configure repository Actions variable `HOMEBREW_TAP_APP_CLIENT_ID` and secret `HOMEBREW_TAP_APP_PRIVATE_KEY` on `lazyaix/lazyagents`.
+   - On every `v*` tag release, `publish-homebrew-tap` commits `Formula/lazyagents.rb` directly to `lazyaix/homebrew-tap` so `brew install lazyaix/tap/lazyagents` updates immediately. Until configured, `publish-homebrew-tap` skips cleanly while `lazyagents.rb` remains attached to the GitHub Release assets.
+4. **Optional Manual `release-plz`**: `.github/workflows/release-plz.yml` is retained strictly as manual `workflow_dispatch` only (`git_release_enable = false`, `git_tag_enable = false` in `release-plz.toml`).
 
 ---
 

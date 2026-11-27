@@ -1,29 +1,20 @@
-# release-plz configuration
+# release-plz configuration (manual workflow_dispatch only)
+# Version upgrades and releases for `lazyaix/lazyagents` are triggered strictly when a maintainer
+# manually creates and pushes a `vX.Y.Z` Git tag (handled by `.github/workflows/release.yml`).
 # See https://release-plz.dev/docs/config
 
 [workspace]
-# Track versions from Git tags (v*) instead of querying crates.io while unpublished.
-# When ready for crates.io Trusted Publishing (OIDC), set `git_only = false` and `publish = true`.
 git_only = true
 publish = false
-
-# Disable per-crate Git tags and releases by default; only the primary `lazyagents` binary crate
-# owns the repository-wide `vX.Y.Z` tag and immutable GitHub Release.
 git_release_enable = false
 git_tag_enable = false
-
-# Disable cargo-semver-checks while crates are internal; enable once public library APIs ship.
 semver_check = false
-
 pr_labels = ["release"]
 
 [[package]]
 name = "lazyagents"
-# Automatically create immutable GitHub Releases and `vX.Y.Z` tags when the Release PR is merged.
-# If cargo-dist is adopted later for multi-platform binary releases, set `git_release_enable = false`
-# so cargo-dist publishes the immutable GitHub Release atomically with all binary assets.
-git_release_enable = true
-git_tag_enable = true
+git_release_enable = false
+git_tag_enable = false
 git_tag_name = "v{{ version }}"
 changelog_path = "CHANGELOG.md"
 changelog_include = [

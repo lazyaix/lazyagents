@@ -1,0 +1,303 @@
+name: Release
+
+# Triggered strictly when a human maintainer manually creates and pushes a `vX.Y.Z` Git tag.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate pinned Rust toolchain and target
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          rustup show active-toolchain
+          rustup target add "$TARGET"
+
+      - name: Build stripped release binary
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          export LAZYAGENTS_RELEASE_VERSION="${TAG_NAME#v}"
+          cargo build --profile dist --locked --target "$TARGET" --bin lazyagents
+
+      - name: Package Unix archive
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          STAGE="lazyagents-${TAG_NAME}-${TARGET}"
+          mkdir -p "dist/${STAGE}"
+          cp "target/${TARGET}/dist/lazyagents" "dist/${STAGE}/lazyagents"
+          cp README.md LICENSE-APACHE LICENSE-MIT "dist/${STAGE}/"
+          tar -C dist -czf "dist/${STAGE}.tar.gz" "${STAGE}"
+          rm -rf "dist/${STAGE}"
+
+      - name: Package Windows archive
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        env:
+          TARGET: ${{ matrix.target }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          $stage = "lazyagents-$($env:TAG_NAME)-$($env:TARGET)"
+          New-Item -ItemType Directory -Force -Path "dist/$stage" | Out-Null
+          Copy-Item "target/$($env:TARGET)/dist/lazyagents.exe" "dist/$stage/lazyagents.exe"
+          Copy-Item README.md, LICENSE-APACHE, LICENSE-MIT "dist/$stage/"
+          Compress-Archive -Path "dist/$stage/*" -DestinationPath "dist/$stage.zip" -Force
+          Remove-Item -Recurse -Force "dist/$stage"
+
+      - name: Upload platform archive
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/lazyagents-*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download platform archives
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums, shell installer, and Homebrew formula
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG_NAME#v}"
+
+          (cd dist && sha256sum lazyagents-*.tar.gz lazyagents-*.zip | sort -k2 > checksums.txt)
+
+          sha_for() {
+            awk -v f="$1" '$2 == f { print $1 }' dist/checksums.txt
+          }
+
+          SHA_MACOS_ARM64="$(sha_for "lazyagents-${TAG_NAME}-aarch64-apple-darwin.tar.gz")"
+          SHA_MACOS_X64="$(sha_for "lazyagents-${TAG_NAME}-x86_64-apple-darwin.tar.gz")"
+          SHA_LINUX_X64="$(sha_for "lazyagents-${TAG_NAME}-x86_64-unknown-linux-gnu.tar.gz")"
+          SHA_LINUX_ARM64="$(sha_for "lazyagents-${TAG_NAME}-aarch64-unknown-linux-gnu.tar.gz")"
+
+          cat > dist/lazyagents.rb <<EOF
+          class Lazyagents < Formula
+            desc "Multi-Agent Project Configuration Studio, Engineering Governance Compiler, and Hook Policy Engine"
+            homepage "https://github.com/lazyaix/lazyagents"
+            version "${VERSION}"
+            license any_of: ["Apache-2.0", "MIT"]
+
+            on_macos do
+              on_arm do
+                url "https://github.com/lazyaix/lazyagents/releases/download/${TAG_NAME}/lazyagents-${TAG_NAME}-aarch64-apple-darwin.tar.gz"
+                sha256 "${SHA_MACOS_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/lazyaix/lazyagents/releases/download/${TAG_NAME}/lazyagents-${TAG_NAME}-x86_64-apple-darwin.tar.gz"
+                sha256 "${SHA_MACOS_X64}"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/lazyaix/lazyagents/releases/download/${TAG_NAME}/lazyagents-${TAG_NAME}-aarch64-unknown-linux-gnu.tar.gz"
+                sha256 "${SHA_LINUX_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/lazyaix/lazyagents/releases/download/${TAG_NAME}/lazyagents-${TAG_NAME}-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "${SHA_LINUX_X64}"
+              end
+            end
+
+            def install
+              bin.install "lazyagents"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/lazyagents --version")
+            end
+          end
+          EOF
+
+          cat > dist/lazyagents-installer.sh <<'INSTALLER'
+          #!/bin/sh
+          set -eu
+
+          REPO="lazyaix/lazyagents"
+          TAG="__TAG_NAME__"
+          INSTALL_DIR="${LAZYAGENTS_INSTALL_DIR:-$HOME/.local/bin}"
+
+          OS="$(uname -s)"
+          ARCH="$(uname -m)"
+
+          case "$OS" in
+            Darwin)
+              case "$ARCH" in
+                arm64|aarch64) TARGET="aarch64-apple-darwin" ;;
+                x86_64) TARGET="x86_64-apple-darwin" ;;
+                *) echo "Unsupported macOS architecture: $ARCH" >&2; exit 1 ;;
+              esac
+              ;;
+            Linux)
+              case "$ARCH" in
+                x86_64|amd64) TARGET="x86_64-unknown-linux-gnu" ;;
+                aarch64|arm64) TARGET="aarch64-unknown-linux-gnu" ;;
+                *) echo "Unsupported Linux architecture: $ARCH" >&2; exit 1 ;;
+              esac
+              ;;
+            *)
+              echo "Unsupported OS: $OS (download Windows .zip from GitHub Releases)" >&2
+              exit 1
+              ;;
+          esac
+
+          ARCHIVE="lazyagents-${TAG}-${TARGET}.tar.gz"
+          BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+
+          curl --proto '=https' --tlsv1.2 -fsSL "${BASE_URL}/${ARCHIVE}" -o "${TMP_DIR}/${ARCHIVE}"
+          curl --proto '=https' --tlsv1.2 -fsSL "${BASE_URL}/checksums.txt" -o "${TMP_DIR}/checksums.txt"
+
+          EXPECTED="$(awk -v f="$ARCHIVE" '$2 == f { print $1 }' "${TMP_DIR}/checksums.txt")"
+          if command -v sha256sum >/dev/null 2>&1; then
+            ACTUAL="$(sha256sum "${TMP_DIR}/${ARCHIVE}" | awk '{ print $1 }')"
+          else
+            ACTUAL="$(shasum -a 256 "${TMP_DIR}/${ARCHIVE}" | awk '{ print $1 }')"
+          fi
+          if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "SHA-256 verification failed for ${ARCHIVE}" >&2
+            exit 1
+          fi
+
+          tar -C "$TMP_DIR" -xzf "${TMP_DIR}/${ARCHIVE}"
+          mkdir -p "$INSTALL_DIR"
+          install -m 755 "${TMP_DIR}/lazyagents-${TAG}-${TARGET}/lazyagents" "${INSTALL_DIR}/lazyagents"
+          echo "Installed lazyagents ${TAG} to ${INSTALL_DIR}/lazyagents"
+          INSTALLER
+
+          sed -i "s/__TAG_NAME__/${TAG_NAME}/g" dist/lazyagents-installer.sh
+          chmod +x dist/lazyagents-installer.sh
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/lazyagents-*.tar.gz
+            dist/lazyagents-*.zip
+            dist/checksums.txt
+
+      - name: Upload Homebrew formula artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: homebrew-formula
+          path: dist/lazyagents.rb
+          if-no-files-found: error
+
+      - name: Create Immutable GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG_NAME" \
+            dist/lazyagents-*.tar.gz \
+            dist/lazyagents-*.zip \
+            dist/checksums.txt \
+            dist/lazyagents-installer.sh \
+            dist/lazyagents.rb \
+            --title "lazyagents ${TAG_NAME}" \
+            --generate-notes
+
+  publish-homebrew-tap:
+    name: Update lazyaix/homebrew-tap Formula
+    needs: publish
+    if: vars.HOMEBREW_TAP_APP_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download Homebrew formula
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: homebrew-formula
+          path: dist
+
+      - name: Mint Homebrew Tap GitHub App token
+        id: tap-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.HOMEBREW_TAP_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HOMEBREW_TAP_APP_PRIVATE_KEY }}
+          owner: lazyaix
+          repositories: homebrew-tap
+          permission-contents: write
+
+      - name: Commit Formula/lazyagents.rb to lazyaix/homebrew-tap
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.tap-token.outputs.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          EXISTING_SHA="$(gh api repos/lazyaix/homebrew-tap/contents/Formula/lazyagents.rb --jq '.sha' 2>/dev/null || true)"
+          CONTENT_B64="$(base64 -w 0 dist/lazyagents.rb)"
+          if [ -n "$EXISTING_SHA" ]; then
+            gh api -X PUT repos/lazyaix/homebrew-tap/contents/Formula/lazyagents.rb \
+              -f message="chore(formula): release lazyagents ${TAG_NAME}" \
+              -f content="$CONTENT_B64" \
+              -f sha="$EXISTING_SHA"
+          else
+            gh api -X PUT repos/lazyaix/homebrew-tap/contents/Formula/lazyagents.rb \
+              -f message="chore(formula): add lazyagents ${TAG_NAME}" \
+              -f content="$CONTENT_B64"
+          fi
