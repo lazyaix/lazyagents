@@ -20,7 +20,7 @@ pub(crate) fn render_startup_banner(
     writeln!(
         out,
         "lazyagents v{} [status={} | theme={} | shader={} | viewport={:?} | motion={}]",
-        env!("CARGO_PKG_VERSION"),
+        crate::cli::APP_VERSION,
         status_label(runtime.status()),
         tui.theme,
         tui.shader_preset,

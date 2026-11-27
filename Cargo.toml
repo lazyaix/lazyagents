@@ -100,3 +100,8 @@ multiple_unsafe_ops_per_block = "deny"
 
 [workspace.lints.cargo]
 unused_dependencies = "warn"
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
+strip = "symbols"
