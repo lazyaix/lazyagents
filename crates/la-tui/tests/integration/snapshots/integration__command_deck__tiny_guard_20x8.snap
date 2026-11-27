@@ -1,0 +1,7 @@
+---
+source: crates/la-tui/tests/integration/command_deck.rs
+expression: buffer_to_text(&tiny_term)
+---
+ Terminal Too Small
+ Resize to >= 60x16
+       (20x8)

@@ -1,0 +1,40 @@
+---
+source: crates/la-tui/tests/integration/command_deck.rs
+expression: rendered
+---
+ ◆ LAZYAGENTS  lazyagents │  存 在 漂 移   HP:5%  TOK:179/20000 │ ✕ 5  ▲ 0 │ Cyber Neon | cyber-overdrive | ZH
+╭ ◆ DECK ──────────────╮╭ ❖ 实 时 只 读  GitHub 治 理 审 计  (gh CLI) ───────────────────────╮╭ 编 译 预 览    差 异 对 比    合 规 诊 断  ╮
+│ 全 局 总 览              ││审 计 仓 库 : lazyaix/lazyagents                                ││{                               │
+│  ◈ 赛 博 仪 表 盘         ││                                                            ││  "lazyagents-git-guard": {     │
+│                      ││    PASS  Merge Strategy — Squash-only + auto-delete        ││    "PreToolUse": [             │
+│ 工 程 治 理              ││enabled.                                                    ││      {                         │
+│  ❖ 工 程 规 范           ││ ▸  DRIFT  Immutable Releases — Immutable Releases disabled.││        "hooks": [              │
+│▸ ❖ GitHub 审 计  (2)   ││                                                            ││          {                     │
+│                      ││                                                            ││            "command":          │
+│ ANTIGRAVITY 资 产      ││                                                            ││"lazyagents hook eval           │
+│  ▤ AGENTS.md 指 令  (1)││                                                            ││git-guard",                     │
+│  § 条 件 规 则  (1)      ││                                                            ││            "timeout": 15,      │
+│  ★ 技 能 包  (0)        ││                                                            ││            "type": "command"   │
+│  ◎ 子 代 理  (0)        ││                                                            ││          }                     │
+│  ⚡  钩 子 与 沙 盒  (0)   ││                                                            ││        ],                      │
+│  ⌘ MCP 服 务  (0)      ││                                                            ││        "matcher": "run_command"│
+│  ≡ 索 引 清 单  (3)      ││                                                            ││      }                         │
+│  ⊞ 插 件 包  (0)        ││                                                            ││    ]                           │
+│                      ││                                                            ││  },                            │
+│ 编 译 同 步              ││                                                            ││  "lazyagents-secret-guard": {  │
+│  ± 同 步 与 差 异  (5)    ││                                                            ││    "PreToolUse": [             │
+│                      │╰────────────────────────────────────────────────────────────╯│      {                         │
+│                      │╭ ⚡  建 议 修 复 命 令 （ 只 读 复 制 ）  ───────────────────────────────╮│        "hooks": [              │
+│                      ││[y] 复 制 修 复 : gh api -X PUT                                 ││          {                     │
+│                      ││repos/lazyaix/lazyagents/immutable-releases                 ││            "command":          │
+│                      ││                                                            ││"lazyagents hook eval           │
+╰──────────────────────╯╰────────────────────────────────────────────────────────────╯╰────────────────────────────────╯
+┏ ⚡  实 时 遥 测 与 脱 敏 日 志  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃20:45:00 [Info] la_cli: [REDACTED] scrubbed                                                                           ┃
+┃                                                                                                                      ┃
+┃                                                                                                                      ┃
+┃                                                                                   ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ┃
+┃                                                                                   ┃ GitHub 治 理 审 计 已 刷 新           ┃▓▓
+┃                                                                                   ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛▓▓
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+Ctrl+K 命 令 面 板   Tab 切 窗   s 同 步   e 外 部 编 辑   t 主 题   p 特 效   L 中 /英   ~ 日 志   ? 帮 助   q 退 出

@@ -42,6 +42,7 @@ tempfile = "3.27"
 thiserror = "2.0"
 toml = "1.2"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
+tui-big-text = "0.8"
 unicode-segmentation = "1.12"
 unicode-width = "0.2"
 
