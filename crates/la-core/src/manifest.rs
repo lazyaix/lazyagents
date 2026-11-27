@@ -6,6 +6,8 @@ mod settings;
 
 use std::collections::BTreeSet;
 
+use globset::Glob;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::engineering::EngineeringPolicy;
@@ -13,12 +15,14 @@ use crate::error::CoreError;
 
 pub use self::resources::{
     AntigravityAgentExt, DEFAULT_HOOK_TIMEOUT_SECS, HookMatcher, HookSpec, IndexEntry,
-    IndexManifestSpec, IndexManifests, InstructionSection, InstructionSpec, McpServerSpec,
-    McpTransport, McpVariable, ModelTier, PackRef, PackSource, PluginSpec, RuleSpec, RuleTrigger,
-    SkillSpec, SubagentSpec, SubagentTargetExt,
+    IndexManifestSpec, IndexManifests, InstructionSection, InstructionSpec, McpAuthMode,
+    McpRiskSurface, McpServerSpec, McpToolLoading, McpTransport, McpVariable, ModelTier, PackRef,
+    PackSource, PluginSpec, RuleSpec, RuleTrigger, SkillSpec, SubagentSpec, SubagentTargetExt,
 };
 pub use self::settings::{
-    AntigravityTargetConfig, DEFAULT_ALWAYS_ON_MAX_TOKENS, DEFAULT_RULE_MAX_BYTES, GitOutputMode,
+    AntigravityTargetConfig, CrossAgentTargetConfig, DEFAULT_ALWAYS_ON_MAX_TOKENS,
+    DEFAULT_RECOMMENDED_ALWAYS_ON_TOKENS, DEFAULT_RECOMMENDED_ROOT_BYTES,
+    DEFAULT_RECOMMENDED_SKILL_MAX_LINES, DEFAULT_RULE_MAX_BYTES, GitOutputMode,
     InstructionFileKind, LintConfig, LintLevel, OrgPolicyRef, ProjectMeta, ReservedTargetConfig,
     ScopeSettings, TargetConfigs, TemplateLang,
 };
@@ -139,8 +143,13 @@ impl ProjectManifest {
             "mcp_server",
         )?;
         check_unique(self.plugins.iter().map(|p| p.name.as_str()), "plugin")?;
+        check_unique(
+            self.engineering.format.rules.iter().map(|r| r.id.as_str()),
+            "format_rule",
+        )?;
 
-        self.validate_hooks_and_instructions()
+        self.validate_hooks_and_instructions()?;
+        self.validate_mcp_and_safety_policies()
     }
 
     fn validate_hooks_and_instructions(&self) -> Result<(), CoreError> {
@@ -169,6 +178,94 @@ impl ProjectManifest {
                 });
             }
         }
+        Ok(())
+    }
+
+    fn validate_mcp_and_safety_policies(&self) -> Result<(), CoreError> {
+        for server in &self.mcp_servers {
+            let mut allowed = BTreeSet::new();
+            for tool in &server.allowed_tools {
+                let trimmed = tool.trim();
+                if trimmed.is_empty() {
+                    return Err(CoreError::InvalidManifest {
+                        message: format!(
+                            "mcp_server `{}` allowed_tools contains a blank entry",
+                            server.name
+                        ),
+                    });
+                }
+                allowed.insert(trimmed);
+            }
+            for tool in &server.denied_tools {
+                let trimmed = tool.trim();
+                if trimmed.is_empty() {
+                    return Err(CoreError::InvalidManifest {
+                        message: format!(
+                            "mcp_server `{}` denied_tools contains a blank entry",
+                            server.name
+                        ),
+                    });
+                }
+                if allowed.contains(trimmed) {
+                    return Err(CoreError::InvalidManifest {
+                        message: format!(
+                            "mcp_server `{}` lists tool `{trimmed}` in both allowed_tools and denied_tools",
+                            server.name
+                        ),
+                    });
+                }
+            }
+        }
+
+        for rule in &self.engineering.format.rules {
+            if rule.glob.trim().is_empty() {
+                return Err(CoreError::InvalidManifest {
+                    message: format!("format rule `{}` glob must not be blank", rule.id),
+                });
+            }
+            if let Err(err) = Glob::new(&rule.glob) {
+                return Err(CoreError::InvalidManifest {
+                    message: format!(
+                        "format rule `{}` has invalid glob `{}`: {err}",
+                        rule.id, rule.glob
+                    ),
+                });
+            }
+            if rule.cmd.is_empty() || rule.cmd.first().is_none_or(|bin| bin.trim().is_empty()) {
+                return Err(CoreError::InvalidManifest {
+                    message: format!(
+                        "format rule `{}` cmd must specify a non-empty executable argv",
+                        rule.id
+                    ),
+                });
+            }
+            if rule.timeout_ms == 0 {
+                return Err(CoreError::InvalidManifest {
+                    message: format!(
+                        "format rule `{}` timeout_ms must be greater than 0",
+                        rule.id
+                    ),
+                });
+            }
+        }
+
+        for pattern in &self.engineering.shell_guard.extra_deny_patterns {
+            if pattern.trim().is_empty() {
+                return Err(CoreError::InvalidManifest {
+                    message:
+                        "engineering.shell_guard.extra_deny_patterns must not contain blank entries"
+                            .to_owned(),
+                });
+            }
+            if let Err(err) = Regex::new(pattern) {
+                return Err(CoreError::InvalidManifest {
+                    message: format!(
+                        "engineering.shell_guard.extra_deny_patterns has invalid regex `{pattern}`: {err}"
+                    ),
+                });
+            }
+        }
+
         Ok(())
     }
 }

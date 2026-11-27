@@ -306,7 +306,7 @@ fn check_mcp_la006_la008(inputs: &LintInputs<'_>, diagnostics: &mut Vec<Diagnost
                     diagnostics,
                 );
             }
-            McpTransport::StreamableHttp { url, headers } => {
+            McpTransport::StreamableHttp { url, headers, .. } => {
                 if url.ends_with("/sse")
                     && let Some(severity) = sse_severity
                 {

@@ -9,8 +9,8 @@ use std::path::Path;
 
 use la_core::manifest::{
     GitOutputMode, HookMatcher, HookSpec, IndexManifestSpec, InstructionFileKind,
-    InstructionSection, InstructionSpec, McpServerSpec, McpTransport, McpVariable, ModelTier,
-    RuleSpec, RuleTrigger, SkillSpec, SubagentSpec, SubagentTargetExt,
+    InstructionSection, InstructionSpec, McpAuthMode, McpServerSpec, McpToolLoading, McpTransport,
+    McpVariable, ModelTier, RuleSpec, RuleTrigger, SkillSpec, SubagentSpec, SubagentTargetExt,
 };
 use la_core::{HookEvent, KebabName, ProjectManifest, ResourceId};
 
@@ -439,6 +439,7 @@ fn import_mcp_config(
             } else {
                 McpTransport::StreamableHttp {
                     url: url.to_owned(),
+                    auth: McpAuthMode::HeaderVar,
                     headers,
                 }
             }
@@ -454,6 +455,10 @@ fn import_mcp_config(
             enabled,
             transport,
             variables,
+            tool_loading: McpToolLoading::Eager,
+            allowed_tools: Vec::new(),
+            denied_tools: Vec::new(),
+            risk_surfaces: Vec::new(),
         });
         notes.push(format!("imported MCP server `{name_str}`"));
     }

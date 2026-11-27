@@ -19,18 +19,34 @@ pub struct ResourceId(String);
 #[serde(transparent)]
 pub struct KebabName(String);
 
-/// Supported and reserved AI coding agent compilation targets.
+/// Supported AI coding agent compilation targets (5-target AAIF-first matrix).
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TargetKind {
     /// Google Antigravity (`AGENTS.md`, `.agents/**`). Active in V1.
     Antigravity,
-    /// Anthropic Claude Code (`CLAUDE.md`, `.mcp.json`, `.claude/**`). Reserved.
+    /// Anthropic Claude Code (`CLAUDE.md`, `.mcp.json`, `.claude/**`).
     ClaudeCode,
-    /// `OpenAI` Codex (`AGENTS.md`, `.agents/skills/`, `.codex/config.toml`). Reserved.
+    /// `OpenAI` Codex (`AGENTS.md`, `.agents/skills/`, `.codex/config.toml`).
     Codex,
-    /// GitHub Copilot (`.github/copilot-instructions.md`). Reserved.
+    /// Cursor (`AGENTS.md`, `.cursor/rules/*.mdc`, `.cursor/hooks.json`, `.cursor/mcp.json`).
+    Cursor,
+    /// GitHub Copilot (`AGENTS.md`, `.github/instructions/*.instructions.md`, `.github/hooks/`).
     GitHubCopilot,
+}
+
+/// Output deduplication strategy when multiple compilation targets are enabled simultaneously.
+#[derive(
+    Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum TargetOutputStrategy {
+    /// Prefer shared AAIF standard outputs (`AGENTS.md`, `.agents/skills/`) with lightweight bridges
+    /// (e.g., `@AGENTS.md` in `CLAUDE.md`) to avoid repository churn and double context injection.
+    #[default]
+    Shared,
+    /// Emit a self-contained copy of root instruction files for this target independently.
+    Standalone,
 }
 
 /// Vendor-neutral abstract tool capability mapped to target-specific tool names at compile time.
@@ -62,16 +78,22 @@ pub enum ToolCapability {
 pub enum HookEvent {
     /// Runs once when a new conversation session starts.
     SessionStart,
+    /// Runs when a user submits a prompt before model execution.
+    UserPromptSubmit,
+    /// Runs before the model is invoked (Antigravity-native).
+    PreInvocation,
     /// Runs before a tool step executes.
     PreToolUse,
     /// Runs after a tool step completes.
     PostToolUse,
-    /// Runs before the model is invoked (Antigravity-native).
-    PreInvocation,
     /// Runs after model tool calls complete (Antigravity-native).
     PostInvocation,
+    /// Runs immediately before automatic context compaction occurs.
+    PreCompact,
     /// Runs when the agent execution loop terminates.
     Stop,
+    /// Runs when a session ends cleanly for cleanup or telemetry.
+    SessionEnd,
 }
 
 /// Deterministic authorization decision returned by guardrail hooks and path policies.
@@ -190,6 +212,7 @@ impl TargetKind {
             Self::Antigravity => "antigravity",
             Self::ClaudeCode => "claude_code",
             Self::Codex => "codex",
+            Self::Cursor => "cursor",
             Self::GitHubCopilot => "github_copilot",
         }
     }
@@ -208,22 +231,39 @@ impl fmt::Display for TargetKind {
 }
 
 impl HookEvent {
-    /// Returns `true` when this event requires a tool-level `matcher` group in Antigravity.
+    /// Returns `true` when this event requires a tool-level `matcher` group.
     #[must_use]
     pub const fn uses_tool_matcher(self) -> bool {
         matches!(self, Self::PreToolUse | Self::PostToolUse)
     }
 
-    /// Returns the Antigravity `hooks.json` event key name.
+    /// Returns the canonical `PascalCase` event key across targets.
     #[must_use]
-    pub const fn antigravity_key(self) -> &'static str {
+    pub const fn canonical_key(self) -> &'static str {
         match self {
             Self::SessionStart => "SessionStart",
+            Self::UserPromptSubmit => "UserPromptSubmit",
+            Self::PreInvocation => "PreInvocation",
             Self::PreToolUse => "PreToolUse",
             Self::PostToolUse => "PostToolUse",
-            Self::PreInvocation => "PreInvocation",
             Self::PostInvocation => "PostInvocation",
+            Self::PreCompact => "PreCompact",
             Self::Stop => "Stop",
+            Self::SessionEnd => "SessionEnd",
+        }
+    }
+
+    /// Returns the Antigravity `hooks.json` event key when natively supported by Antigravity.
+    #[must_use]
+    pub const fn antigravity_key(self) -> Option<&'static str> {
+        match self {
+            Self::SessionStart => Some("SessionStart"),
+            Self::PreToolUse => Some("PreToolUse"),
+            Self::PostToolUse => Some("PostToolUse"),
+            Self::PreInvocation => Some("PreInvocation"),
+            Self::PostInvocation => Some("PostInvocation"),
+            Self::Stop => Some("Stop"),
+            Self::UserPromptSubmit | Self::PreCompact | Self::SessionEnd => None,
         }
     }
 }
@@ -370,11 +410,28 @@ mod tests {
         assert!(TargetKind::Antigravity.is_active_in_v1());
         assert!(!TargetKind::ClaudeCode.is_active_in_v1());
         assert!(!TargetKind::Codex.is_active_in_v1());
+        assert!(!TargetKind::Cursor.is_active_in_v1());
         assert!(!TargetKind::GitHubCopilot.is_active_in_v1());
+        assert_eq!(TargetKind::Cursor.as_str(), "cursor");
+        assert_eq!(
+            TargetOutputStrategy::default(),
+            TargetOutputStrategy::Shared
+        );
 
         assert!(HookEvent::PreToolUse.uses_tool_matcher());
         assert!(HookEvent::PostToolUse.uses_tool_matcher());
         assert!(!HookEvent::Stop.uses_tool_matcher());
-        assert_eq!(HookEvent::PreInvocation.antigravity_key(), "PreInvocation");
+        assert!(!HookEvent::PreCompact.uses_tool_matcher());
+        assert_eq!(
+            HookEvent::PreInvocation.antigravity_key(),
+            Some("PreInvocation")
+        );
+        assert_eq!(HookEvent::PreCompact.antigravity_key(), None);
+        assert_eq!(HookEvent::PreCompact.canonical_key(), "PreCompact");
+        assert_eq!(
+            HookEvent::UserPromptSubmit.canonical_key(),
+            "UserPromptSubmit"
+        );
+        assert_eq!(HookEvent::SessionEnd.canonical_key(), "SessionEnd");
     }
 }

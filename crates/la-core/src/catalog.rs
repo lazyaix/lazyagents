@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use crate::engineering::GitHubScaffold;
 use crate::id::ResourceId;
-use crate::manifest::{McpServerSpec, McpTransport, McpVariable};
+use crate::manifest::{McpAuthMode, McpServerSpec, McpToolLoading, McpTransport, McpVariable};
 
 /// Metadata and rendered body of a built-in skill shipped in the offline catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -125,6 +125,7 @@ pub fn builtin_github_mcp_preset() -> McpServerSpec {
         enabled: true,
         transport: McpTransport::StreamableHttp {
             url: "https://api.githubcopilot.com/mcp/".to_owned(),
+            auth: McpAuthMode::HeaderVar,
             headers,
         },
         variables: vec![McpVariable {
@@ -133,6 +134,10 @@ pub fn builtin_github_mcp_preset() -> McpServerSpec {
             description: "Fine-grained PAT or GitHub App token for remote GitHub MCP access."
                 .to_owned(),
         }],
+        tool_loading: McpToolLoading::Eager,
+        allowed_tools: Vec::new(),
+        denied_tools: Vec::new(),
+        risk_surfaces: Vec::new(),
     }
 }
 

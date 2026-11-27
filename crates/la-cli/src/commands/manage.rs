@@ -6,8 +6,9 @@ use std::io::Write;
 use std::path::Path;
 
 use la_core::manifest::{
-    HookMatcher, HookSpec, InstructionSection, InstructionSpec, McpServerSpec, McpTransport,
-    ModelTier, PluginSpec, RuleSpec, SkillSpec, SubagentSpec, SubagentTargetExt,
+    HookMatcher, HookSpec, InstructionSection, InstructionSpec, McpAuthMode, McpServerSpec,
+    McpToolLoading, McpTransport, ModelTier, PluginSpec, RuleSpec, SkillSpec, SubagentSpec,
+    SubagentTargetExt,
 };
 use la_core::{HookEvent, KebabName, ProjectManifest, ResourceId, ToolCapability};
 use la_runtime::{LOCAL_MANIFEST_REL_PATH, MANIFEST_REL_PATH, save_manifest, write_atomic};
@@ -205,6 +206,10 @@ pub(super) fn cmd_toggle(
                 manifest.targets.codex.enabled = enabled;
                 true
             }
+            "cursor" => {
+                manifest.targets.cursor.enabled = enabled;
+                true
+            }
             "github_copilot" | "github-copilot" => {
                 manifest.targets.github_copilot.enabled = enabled;
                 true
@@ -388,6 +393,7 @@ fn add_mcp(manifest: &mut ProjectManifest, args: &AddArgs) -> Result<(), String>
     let transport = if let Some(url) = &args.url {
         McpTransport::StreamableHttp {
             url: url.clone(),
+            auth: McpAuthMode::HeaderVar,
             headers: BTreeMap::new(),
         }
     } else {
@@ -406,6 +412,10 @@ fn add_mcp(manifest: &mut ProjectManifest, args: &AddArgs) -> Result<(), String>
         enabled: true,
         transport,
         variables: Vec::new(),
+        tool_loading: McpToolLoading::Eager,
+        allowed_tools: Vec::new(),
+        denied_tools: Vec::new(),
+        risk_surfaces: Vec::new(),
     });
     Ok(())
 }

@@ -177,6 +177,7 @@ pub(crate) enum CliTarget {
     Antigravity,
     ClaudeCode,
     Codex,
+    Cursor,
     GithubCopilot,
 }
 
@@ -187,6 +188,7 @@ impl CliTarget {
             Self::Antigravity => Some(&[TargetKind::Antigravity]),
             Self::ClaudeCode => Some(&[TargetKind::ClaudeCode]),
             Self::Codex => Some(&[TargetKind::Codex]),
+            Self::Cursor => Some(&[TargetKind::Cursor]),
             Self::GithubCopilot => Some(&[TargetKind::GitHubCopilot]),
         }
     }
@@ -273,22 +275,28 @@ impl From<CliRuleTrigger> for RuleTrigger {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub(crate) enum CliHookEvent {
     SessionStart,
+    UserPromptSubmit,
+    PreInvocation,
     PreToolUse,
     PostToolUse,
-    PreInvocation,
     PostInvocation,
+    PreCompact,
     Stop,
+    SessionEnd,
 }
 
 impl From<CliHookEvent> for HookEvent {
     fn from(value: CliHookEvent) -> Self {
         match value {
             CliHookEvent::SessionStart => Self::SessionStart,
+            CliHookEvent::UserPromptSubmit => Self::UserPromptSubmit,
+            CliHookEvent::PreInvocation => Self::PreInvocation,
             CliHookEvent::PreToolUse => Self::PreToolUse,
             CliHookEvent::PostToolUse => Self::PostToolUse,
-            CliHookEvent::PreInvocation => Self::PreInvocation,
             CliHookEvent::PostInvocation => Self::PostInvocation,
+            CliHookEvent::PreCompact => Self::PreCompact,
             CliHookEvent::Stop => Self::Stop,
+            CliHookEvent::SessionEnd => Self::SessionEnd,
         }
     }
 }
@@ -299,6 +307,8 @@ pub(crate) enum CliHookProtocol {
     Antigravity,
     ClaudeCode,
     Codex,
+    Cursor,
+    GithubCopilot,
 }
 
 impl From<CliHookProtocol> for HookProtocol {
@@ -307,6 +317,8 @@ impl From<CliHookProtocol> for HookProtocol {
             CliHookProtocol::Antigravity => Self::Antigravity,
             CliHookProtocol::ClaudeCode => Self::ClaudeCode,
             CliHookProtocol::Codex => Self::Codex,
+            CliHookProtocol::Cursor => Self::Cursor,
+            CliHookProtocol::GithubCopilot => Self::GitHubCopilot,
         }
     }
 }
@@ -492,7 +504,7 @@ pub(crate) struct ToggleArgs {
     /// Kind of resource (or `target`) to toggle.
     #[arg(value_enum)]
     pub kind: ResourceKind,
-    /// Resource identifier or target name (`antigravity`, `claude_code`, `codex`, `github_copilot`).
+    /// Resource identifier or target name (`antigravity`, `claude_code`, `codex`, `cursor`, `github_copilot`).
     pub name: String,
     /// Modify `.lazyagents/local.toml` instead of `.lazyagents/lazyagents.toml`.
     #[arg(long)]

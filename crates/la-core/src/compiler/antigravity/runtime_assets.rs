@@ -53,9 +53,24 @@ struct WireMcpServer<'a> {
     variables: Option<&'a [McpVariable]>,
 }
 
-pub(super) fn render_hooks_json(hooks: &[HookSpec]) -> Result<String, CoreError> {
+pub(super) fn render_hooks_json(
+    hooks: &[HookSpec],
+    diagnostics: &mut Vec<CompatibilityDiagnostic>,
+) -> Result<Option<String>, CoreError> {
     let mut root = serde_json::Map::new();
     for hook in hooks {
+        let Some(event_key_str) = hook.event.antigravity_key() else {
+            diagnostics.push(CompatibilityDiagnostic {
+                target: TargetKind::Antigravity,
+                severity: CompatibilitySeverity::Warning,
+                subject: format!("hook:{}", hook.name),
+                message: format!(
+                    "Antigravity `hooks.json` does not natively support lifecycle event `{}`; skipped on Antigravity target",
+                    hook.event.canonical_key()
+                ),
+            });
+            continue;
+        };
         let mut entry = serde_json::Map::new();
         if !hook.enabled {
             entry.insert("enabled".to_owned(), serde_json::Value::Bool(false));
@@ -65,7 +80,7 @@ pub(super) fn render_hooks_json(hooks: &[HookSpec]) -> Result<String, CoreError>
             command: &hook.command,
             timeout: hook.timeout_secs,
         };
-        let event_key = hook.event.antigravity_key().to_owned();
+        let event_key = event_key_str.to_owned();
         if hook.event.uses_tool_matcher() {
             let matcher = resolve_antigravity_matcher(hook.matcher.as_ref());
             let group = WireToolMatcherGroup {
@@ -88,6 +103,10 @@ pub(super) fn render_hooks_json(hooks: &[HookSpec]) -> Result<String, CoreError>
         );
     }
 
+    if root.is_empty() {
+        return Ok(None);
+    }
+
     let mut out =
         serde_json::to_string_pretty(&serde_json::Value::Object(root)).map_err(|err| {
             CoreError::Compile {
@@ -95,7 +114,7 @@ pub(super) fn render_hooks_json(hooks: &[HookSpec]) -> Result<String, CoreError>
             }
         })?;
     out.push('\n');
-    Ok(out)
+    Ok(Some(out))
 }
 
 pub(super) fn render_mcp_config_json(
@@ -126,7 +145,7 @@ pub(super) fn render_mcp_config_json(
                 disabled,
                 variables,
             },
-            McpTransport::StreamableHttp { url, headers } => WireMcpServer {
+            McpTransport::StreamableHttp { url, headers, .. } => WireMcpServer {
                 command: None,
                 args: None,
                 env: None,

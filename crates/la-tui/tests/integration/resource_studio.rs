@@ -7,8 +7,8 @@ use core::time::Duration;
 use std::collections::BTreeMap;
 
 use la_core::manifest::{
-    InstructionSection, InstructionSpec, McpServerSpec, McpTransport, PluginSpec, RuleSpec,
-    RuleTrigger,
+    InstructionSection, InstructionSpec, McpAuthMode, McpServerSpec, McpToolLoading, McpTransport,
+    PluginSpec, RuleSpec, RuleTrigger,
 };
 use la_core::{KebabName, PolicyDecision, ProjectFacts, ProjectManifest, ResourceId};
 use la_tui::{
@@ -66,9 +66,14 @@ fn studio_workspace(initialized: bool) -> WorkspaceSnapshot {
             enabled: true,
             transport: McpTransport::StreamableHttp {
                 url: "https://api.githubcopilot.com/mcp/".to_owned(),
+                auth: McpAuthMode::HeaderVar,
                 headers: BTreeMap::new(),
             },
             variables: Vec::new(),
+            tool_loading: McpToolLoading::Eager,
+            allowed_tools: Vec::new(),
+            denied_tools: Vec::new(),
+            risk_surfaces: Vec::new(),
         });
     }
     if let Ok(name) = KebabName::parse("cyber-pack") {

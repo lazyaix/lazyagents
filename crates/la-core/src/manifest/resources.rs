@@ -260,6 +260,45 @@ pub struct McpVariable {
     pub description: String,
 }
 
+/// Authentication scheme used by a remote Streamable HTTP MCP server (MCP 2026 spec).
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum McpAuthMode {
+    /// Authenticate via HTTP headers containing `${VAR}` placeholders declared in `variables`.
+    #[default]
+    HeaderVar,
+    /// Authenticate dynamically via OAuth 2.1 + Protected Resource Metadata (zero static tokens).
+    #[serde(rename = "oauth")]
+    OAuth,
+    /// Public or locally trusted endpoint requiring no authentication header.
+    None,
+}
+
+/// Tool schema loading strategy for mitigating MCP startup context-window bloat.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum McpToolLoading {
+    /// Load every tool schema into the initial prompt context (traditional MCP default).
+    #[default]
+    Eager,
+    /// Defer full tool schemas behind on-demand Tool Search (`defer_loading: true`).
+    Deferred,
+    /// Expose minimal `search()` / `execute()` primitives for sandboxed Code Mode execution.
+    CodeMode,
+}
+
+/// Security data-flow surface exposed by an MCP server for Lethal Trifecta risk analysis (`LA022`).
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum McpRiskSurface {
+    /// Ingests untrusted external content (web pages, external issues/PRs, emails, tickets).
+    UntrustedInput,
+    /// Accesses private or sensitive local/internal data (repos, databases, secrets, internal docs).
+    PrivateData,
+    /// Can transmit data externally (HTTP writes, webhooks, public PRs/comments, outbound messages).
+    ExternalEgress,
+}
+
 /// Transport mechanism and connection parameters for an MCP server.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "transport", rename_all = "snake_case")]
@@ -278,10 +317,13 @@ pub enum McpTransport {
         #[serde(default)]
         cwd: Option<String>,
     },
-    /// Remote Streamable HTTP endpoint (MCP spec 2025-03-26+).
+    /// Remote stateless Streamable HTTP endpoint (MCP spec 2025-03-26 / 2026-07-28+).
     StreamableHttp {
         /// Remote HTTPS endpoint URL (e.g., `https://api.githubcopilot.com/mcp/`).
         url: String,
+        /// Authentication mode (`header_var`, `oauth`, or `none`).
+        #[serde(default)]
+        auth: McpAuthMode,
         /// Optional HTTP headers (must use `${VAR}` placeholders for credentials).
         #[serde(default)]
         headers: BTreeMap<String, String>,
@@ -296,7 +338,7 @@ pub enum McpTransport {
     },
 }
 
-/// MCP server definition (`[[mcp_servers]]`), compiled to `.agents/mcp_config.json`.
+/// MCP server definition (`[[mcp_servers]]`), compiled to target MCP configuration files.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct McpServerSpec {
     /// Unique MCP server identifier.
@@ -310,6 +352,18 @@ pub struct McpServerSpec {
     /// Explicit Antigravity `${VAR}` setup variable declarations.
     #[serde(default)]
     pub variables: Vec<McpVariable>,
+    /// Tool schema loading strategy (`eager`, `deferred`, or `code_mode`).
+    #[serde(default)]
+    pub tool_loading: McpToolLoading,
+    /// Optional least-privilege allowlist of exposed tool names.
+    #[serde(default)]
+    pub allowed_tools: Vec<String>,
+    /// Optional denylist of blocked tool names.
+    #[serde(default)]
+    pub denied_tools: Vec<String>,
+    /// Explicit Lethal Trifecta security risk surfaces for static audit (`LA022`).
+    #[serde(default)]
+    pub risk_surfaces: Vec<McpRiskSurface>,
 }
 
 /// Single `entries` or `inherits` path entry inside Antigravity `skills.json` / `rules.json` / `plugins.json`.

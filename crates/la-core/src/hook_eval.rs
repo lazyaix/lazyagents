@@ -33,10 +33,14 @@ pub enum HookProtocol {
     /// Google Antigravity camelCase JSON stdin/stdout contract (V1 active).
     #[default]
     Antigravity,
-    /// Reserved Anthropic Claude Code hook protocol.
+    /// Anthropic Claude Code hook wire protocol (activated in Slice 3).
     ClaudeCode,
-    /// Reserved `OpenAI` Codex hook protocol.
+    /// `OpenAI` Codex hook protocol (activated in Slice 3).
     Codex,
+    /// Cursor hook JSON wire protocol (activated in Slice 3).
+    Cursor,
+    /// GitHub Copilot hook JSON wire protocol (activated in Slice 3).
+    GitHubCopilot,
 }
 
 /// Optional workspace runtime facts supplied by `la-runtime` to enrich hook evaluation.
