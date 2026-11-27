@@ -11,7 +11,8 @@ pub use self::git::{
     MergeStrategy, ProtectedPathEntry, ProtectedPathsPolicy, WorktreeConfig,
 };
 pub use self::github::{
-    ExpectedRulesets, GitHubPolicy, GitHubScaffold, GitHubSyncOptions, TagProtectionRule,
+    CiInstallMode, ExpectedRulesets, GitHubPolicy, GitHubScaffold, GitHubSyncOptions,
+    PrTemplateSyncMode, TagProtectionRule,
 };
 pub use self::quality::{
     ArchitectureLayer, ArchitecturePolicy, ReleasePolicy, ReleaseTool, StopHookMode,

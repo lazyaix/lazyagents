@@ -416,6 +416,9 @@ fn add_plugin(manifest: &mut ProjectManifest, args: &AddArgs) -> Result<(), Stri
         name,
         display_name: None,
         version: Some("0.1.0".to_owned()),
+        author: None,
+        homepage: None,
+        repository: None,
         description: args
             .description
             .clone()

@@ -37,10 +37,12 @@ static PANIC_HOOK_ONCE: Once = Once::new();
 
 /// Resolves workspace root from `cli`, starts the on-demand Tokio runtime, and runs the TUI Studio.
 pub(crate) fn run_studio_from_cli(cli: &Cli) -> Result<(), String> {
-    let root = match &cli.dir {
-        Some(dir) => dir.clone(),
-        None => env::current_dir()
-            .map_err(|err| format!("failed to determine current directory: {err}"))?,
+    let root = if let Some(dir) = &cli.dir {
+        dir.clone()
+    } else {
+        let cwd = env::current_dir()
+            .map_err(|err| format!("failed to determine current directory: {err}"))?;
+        la_runtime::discover_workspace_root(&cwd).unwrap_or(cwd)
     };
     run_studio(&root, cli)
 }

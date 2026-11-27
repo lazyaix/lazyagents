@@ -3,16 +3,19 @@
 
 use std::fs;
 use std::io::{self, Read as _, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use la_core::{HookGuardKind, HookProtocol, ProjectManifest, evaluate_hook_json};
-use la_runtime::{audit_github_repo, load_workspace, probe_git_hook_context};
+use la_runtime::{
+    audit_github_repo, discover_workspace_root, load_workspace, probe_git_hook_context,
+};
 
 use crate::cli::{GithubCommand, HookCommand, OutputFormat};
 use crate::commands::CommandOutcome;
 
 pub(super) fn cmd_hook(
-    root: &Path,
+    explicit_dir: Option<&Path>,
+    process_cwd: &Path,
     command: HookCommand,
     out: &mut impl Write,
     _err: &mut impl Write,
@@ -30,8 +33,9 @@ pub(super) fn cmd_hook(
             if stdin_buf.trim().is_empty() {
                 "{}".clone_into(&mut stdin_buf);
             }
-            let manifest = load_manifest_or_default(root);
-            let ctx = probe_git_hook_context(root);
+            let effective_root = resolve_hook_eval_root(explicit_dir, process_cwd, &stdin_buf);
+            let manifest = load_manifest_or_default(&effective_root);
+            let ctx = probe_git_hook_context(&effective_root);
             match evaluate_hook_json(guard_kind, protocol.into(), &stdin_buf, &manifest, &ctx) {
                 Ok(json) => {
                     let _ = writeln!(out, "{json}");
@@ -51,8 +55,15 @@ pub(super) fn cmd_hook(
                 Ok(k) => k,
                 Err(err) => return CommandOutcome::RuntimeError(err.to_string()),
             };
+            let effective_root = explicit_dir.map_or_else(
+                || {
+                    discover_workspace_root(process_cwd)
+                        .unwrap_or_else(|| process_cwd.to_path_buf())
+                },
+                |dir| discover_workspace_root(dir).unwrap_or_else(|| dir.to_path_buf()),
+            );
             let payload = match build_test_payload(
-                root,
+                &effective_root,
                 input.as_deref(),
                 command.as_deref(),
                 path.as_deref(),
@@ -61,8 +72,8 @@ pub(super) fn cmd_hook(
                 Ok(p) => p,
                 Err(msg) => return CommandOutcome::RuntimeError(msg),
             };
-            let manifest = load_manifest_or_default(root);
-            let ctx = probe_git_hook_context(root);
+            let manifest = load_manifest_or_default(&effective_root);
+            let ctx = probe_git_hook_context(&effective_root);
             match evaluate_hook_json(
                 guard_kind,
                 HookProtocol::Antigravity,
@@ -78,6 +89,64 @@ pub(super) fn cmd_hook(
             }
         }
     }
+}
+
+/// Resolves the effective workspace root for `lazyagents hook eval`.
+///
+/// Antigravity runs `.agents/hooks.json` handlers with process CWD set to `.agents/`, while
+/// passing the agent's working directory (`cwd`) and `workspacePaths` in stdin JSON.
+fn resolve_hook_eval_root(
+    explicit_dir: Option<&Path>,
+    process_cwd: &Path,
+    stdin_json: &str,
+) -> PathBuf {
+    if let Some(dir) = explicit_dir {
+        return discover_workspace_root(dir).unwrap_or_else(|| dir.to_path_buf());
+    }
+
+    let payload_candidates = extract_hook_workspace_candidates(stdin_json);
+    for candidate in &payload_candidates {
+        if let Some(found) = discover_workspace_root(candidate) {
+            return found;
+        }
+    }
+
+    if let Some(found) = discover_workspace_root(process_cwd) {
+        return found;
+    }
+
+    if let Some(existing) = payload_candidates.into_iter().find(|p| p.is_dir()) {
+        return existing;
+    }
+
+    process_cwd.to_path_buf()
+}
+
+fn extract_hook_workspace_candidates(stdin_json: &str) -> Vec<PathBuf> {
+    let Ok(val) = serde_json::from_str::<serde_json::Value>(stdin_json) else {
+        return Vec::new();
+    };
+    let mut candidates = Vec::new();
+    if let Some(cwd) = val.get("cwd").and_then(serde_json::Value::as_str)
+        && !cwd.trim().is_empty()
+    {
+        candidates.push(PathBuf::from(cwd.trim()));
+    }
+    if let Some(paths) = val
+        .get("workspacePaths")
+        .and_then(serde_json::Value::as_array)
+    {
+        for item in paths.iter().filter_map(serde_json::Value::as_str) {
+            let trimmed = item.trim();
+            if !trimmed.is_empty() {
+                let pb = PathBuf::from(trimmed);
+                if !candidates.contains(&pb) {
+                    candidates.push(pb);
+                }
+            }
+        }
+    }
+    candidates
 }
 
 pub(super) fn cmd_github(

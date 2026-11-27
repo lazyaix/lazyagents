@@ -197,41 +197,92 @@ fn probe_go(root: &Path, facts: &mut ProjectFacts) {
 }
 
 fn probe_git_metadata(root: &Path, facts: &mut ProjectFacts) {
-    let git_dir = resolve_git_dir(root);
-    let Some(git_dir) = git_dir else {
+    let Some((git_dir, common_dir)) = resolve_git_dirs(root) else {
         return;
     };
 
-    if let Ok(head) = fs::read_to_string(git_dir.join("HEAD"))
-        && let Some(branch) = head.trim().strip_prefix("ref: refs/heads/")
-    {
-        facts.git_default_branch = Some(branch.to_owned());
-    }
+    facts.git_default_branch = infer_default_branch(&git_dir, &common_dir);
 
-    if let Ok(cfg) = fs::read_to_string(git_dir.join("config"))
+    let cfg_raw = fs::read_to_string(common_dir.join("config"))
+        .or_else(|_| fs::read_to_string(git_dir.join("config")));
+    if let Ok(cfg) = cfg_raw
         && let Some(slug) = extract_github_slug_from_git_config(&cfg)
     {
         facts.git_remote_repo = Some(slug);
     }
 }
 
-fn resolve_git_dir(root: &Path) -> Option<std::path::PathBuf> {
+fn resolve_git_dirs(root: &Path) -> Option<(std::path::PathBuf, std::path::PathBuf)> {
     let dot_git = root.join(".git");
     if dot_git.is_dir() {
-        return Some(dot_git);
+        return Some((dot_git.clone(), dot_git));
     }
     if dot_git.is_file()
         && let Ok(content) = fs::read_to_string(&dot_git)
         && let Some(raw_dir) = content.trim().strip_prefix("gitdir:")
     {
         let p = Path::new(raw_dir.trim());
-        return Some(if p.is_absolute() {
+        let git_dir = if p.is_absolute() {
             p.to_path_buf()
         } else {
             root.join(p)
-        });
+        };
+        let common_dir = fs::read_to_string(git_dir.join("commondir")).map_or_else(
+            |_| git_dir.clone(),
+            |raw| {
+                let c = Path::new(raw.trim());
+                if c.is_absolute() {
+                    c.to_path_buf()
+                } else {
+                    git_dir.join(c)
+                }
+            },
+        );
+        return Some((git_dir, common_dir));
     }
     None
+}
+
+fn infer_default_branch(git_dir: &Path, common_dir: &Path) -> Option<String> {
+    if let Ok(origin_head) = fs::read_to_string(common_dir.join("refs/remotes/origin/HEAD"))
+        && let Some(branch) = origin_head.trim().strip_prefix("ref: refs/remotes/origin/")
+        && !branch.is_empty()
+    {
+        return Some(branch.to_owned());
+    }
+
+    let packed_refs = fs::read_to_string(common_dir.join("packed-refs")).ok();
+    for candidate in ["main", "master"] {
+        let ref_rel = format!("refs/heads/{candidate}");
+        let has_loose = common_dir.join(&ref_rel).is_file();
+        let has_packed = packed_refs
+            .as_deref()
+            .is_some_and(|raw| packed_refs_contains(raw, &ref_rel));
+        if has_loose || has_packed {
+            return Some(candidate.to_owned());
+        }
+    }
+
+    if let Ok(head) = fs::read_to_string(git_dir.join("HEAD"))
+        && let Some(branch) = head.trim().strip_prefix("ref: refs/heads/")
+        && !branch.is_empty()
+    {
+        return Some(branch.to_owned());
+    }
+
+    None
+}
+
+fn packed_refs_contains(packed: &str, ref_name: &str) -> bool {
+    packed.lines().any(|line| {
+        let trimmed = line.trim();
+        !trimmed.starts_with('#')
+            && !trimmed.starts_with('^')
+            && trimmed
+                .split_whitespace()
+                .nth(1)
+                .is_some_and(|name| name == ref_name)
+    })
 }
 
 fn extract_github_slug_from_git_config(cfg: &str) -> Option<String> {
@@ -242,7 +293,10 @@ fn extract_github_slug_from_git_config(cfg: &str) -> Option<String> {
             in_origin = trimmed == "[remote \"origin\"]";
             continue;
         }
-        if in_origin && let Some(url) = trimmed.strip_prefix("url =") {
+        if in_origin
+            && let Some(after_key) = trimmed.strip_prefix("url")
+            && let Some(url) = after_key.trim_start().strip_prefix('=')
+        {
             return parse_github_repo_slug(url.trim());
         }
     }
