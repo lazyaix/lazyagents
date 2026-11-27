@@ -225,10 +225,25 @@ pub(super) fn cmd_inspect(root: &Path, args: &InspectArgs, out: &mut impl Write)
         Ok(ws) => ws,
         Err(err) => return CommandOutcome::RuntimeError(err.to_string()),
     };
-    let (_, plan, report) = match ws.check(None) {
+    let (compiled, plan, report) = match ws.check(None) {
         Ok(res) => res,
         Err(err) => return CommandOutcome::RuntimeError(err.to_string()),
     };
+
+    if args.agbom {
+        let agbom = la_core::build_agbom(&ws.resolved, &compiled, &ws.source_files);
+        if args.format == OutputFormat::Json {
+            return match agbom.to_json_pretty() {
+                Ok(json) => {
+                    let _ = write!(out, "{json}");
+                    CommandOutcome::Pass
+                }
+                Err(err) => CommandOutcome::RuntimeError(err.to_string()),
+            };
+        }
+        let _ = write!(out, "{}", agbom.format_text());
+        return CommandOutcome::Pass;
+    }
 
     if args.format == OutputFormat::Json {
         let payload = serde_json::json!({
@@ -237,6 +252,7 @@ pub(super) fn cmd_inspect(root: &Path, args: &InspectArgs, out: &mut impl Write)
             "provenance": ws.resolved.provenance,
             "facts": ws.facts,
             "budget": report.budget,
+            "lethal_trifecta": report.lethal_trifecta,
             "has_drift": plan.has_drift(),
             "diagnostics_count": report.diagnostics.len(),
         });
@@ -254,10 +270,16 @@ pub(super) fn cmd_inspect(root: &Path, args: &InspectArgs, out: &mut impl Write)
     let _ = writeln!(out, "Languages: {:?}", ws.facts.languages);
     let _ = writeln!(
         out,
-        "Always-On Budget: {}/{} tokens ({:?})",
+        "Always-On Budget: {}/{} tokens ({:?}, pull_ratio={}%)",
         report.budget.always_on_tokens,
         report.budget.max_always_on_tokens,
-        report.budget.always_on_status
+        report.budget.always_on_status,
+        report.budget.push_pull.pull_ratio_percent
+    );
+    let _ = writeln!(
+        out,
+        "Lethal Trifecta Risk: {:?}",
+        report.lethal_trifecta.overall_risk
     );
     let _ = writeln!(
         out,

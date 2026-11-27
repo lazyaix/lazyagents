@@ -4,6 +4,7 @@
 //! This crate intentionally performs zero network, filesystem, PTY, or terminal I/O so
 //! both `la-runtime` and `la-tui` can share deterministic domain logic.
 
+pub mod agbom;
 mod agent;
 pub mod budget;
 pub mod catalog;
@@ -22,8 +23,14 @@ mod secret;
 mod session;
 pub mod template;
 
+pub use crate::agbom::{
+    AGBOM_SCHEMA_VERSION, AgBomComponent, AgBomComponentKind, AgBomReport, build_agbom,
+};
 pub use crate::agent::AgentId;
-pub use crate::budget::{BudgetReport, BudgetStatus, FileBudget, analyze_budgets};
+pub use crate::budget::{
+    BudgetReport, BudgetStatus, FileBudget, LeanAdvisory, PushPullMetrics, analyze_budgets,
+    analyze_budgets_with_manifest,
+};
 pub use crate::compiler::{
     CompatibilityDiagnostic, CompatibilitySeverity, CompileInputs, CompileOutput, GeneratedFile,
     compile_all,
@@ -40,8 +47,8 @@ pub use crate::id::{
     ToolCapability,
 };
 pub use crate::lint::{
-    Diagnostic, DiagnosticLocation, DiagnosticSeverity, LintCode, LintInputs, LintReport,
-    lint_project,
+    Diagnostic, DiagnosticLocation, DiagnosticSeverity, LethalTrifectaReport, LethalTrifectaRisk,
+    LintCode, LintInputs, LintReport, TrifectaSubjectReport, analyze_lethal_trifecta, lint_project,
 };
 pub use crate::lock::{LockEntry, Lockfile, ManagedRegionStyle, OwnershipMode, sha256_hex};
 pub use crate::manifest::{CURRENT_SCHEMA_VERSION, ProjectManifest};

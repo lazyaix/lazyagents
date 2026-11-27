@@ -446,6 +446,9 @@ pub(crate) struct InspectArgs {
     /// Merge optional gitignored `.lazyagents/local.toml` overrides.
     #[arg(long)]
     pub include_local: bool,
+    /// Emit a deterministic Agent Bill of Materials (`AgBOM`) with provenance, SHA-256, and risk surfaces.
+    #[arg(long)]
+    pub agbom: bool,
 }
 
 /// Arguments for `lazyagents add <kind> <name>`.

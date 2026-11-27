@@ -2,7 +2,7 @@
 source: crates/la-tui/tests/integration/resource_studio.rs
 expression: rendered
 ---
- ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:0%  TOK:280/20000 │ ✕ 7  ▲ 0 │ Cyber Neon | cyber-overdrive | EN
+ ◆ LAZYAGENTS  lazyagents │  DRIFT  HP:0%  TOK:280/20000 │ ✕ 7  ▲ 1 │ Cyber Neon | cyber-overdrive | EN
 ╭ ◆ DECK ──────────────╮┏ ⚡  Hooks & Lab ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓╭ Preview   Diff   Lint   Budget ╮
 │ OVERVIEW             │┃Built-in Rust guardrails (git-guard, secret-guard,          ┃│{                               │
 │  ◈ HUD Dashboard     │┃protected-paths, verify-gate) compile automatically from    ┃│  "lazyagents-git-guard": {     │
