@@ -1,0 +1,225 @@
+schema_version = 1
+
+[project]
+name = "lazyagents"
+git_mode = "commit"
+
+[targets.antigravity]
+enabled = true
+instruction_file = "AGENTS.md"
+
+[lint]
+secrets = "error"
+skill_frontmatter = "error"
+legacy_sse_mcp = "error"
+compatibility_loss = "warn"
+github_actions_security = "error"
+
+[engineering.git]
+default_branch = "main"
+branching_model = "trunk-based"
+merge_strategy = "squash-only"
+branch_prefixes = [
+  "feat/",
+  "fix/",
+  "refactor/",
+  "docs/",
+  "test/",
+  "ci/",
+  "chore/",
+  "agent/",
+]
+conventional_commits = "pr-title"
+stacked_prs = true
+ai_disclosure = "pr-checkbox"
+recommend_ssh_signing = true
+local_git_hooks = false
+
+[engineering.git.worktree]
+enabled = true
+pattern = "../lazyagents-wt-{task}"
+
+[engineering.git.guardrails]
+block_push_default_branch = "deny"
+block_force_push = "deny"
+block_destructive_reset = "deny"
+guard_broad_staging = "ask"
+
+[engineering.protected_paths]
+default_decision = "force_ask"
+codeowners_sync = true
+
+[[engineering.protected_paths.entries]]
+glob = ".github/**"
+owners = ["@handoffx"]
+
+[[engineering.protected_paths.entries]]
+glob = "deny.toml"
+owners = ["@handoffx"]
+
+[[engineering.protected_paths.entries]]
+glob = "release-plz.toml"
+owners = ["@handoffx"]
+
+[[engineering.protected_paths.entries]]
+glob = "SECURITY.md"
+owners = ["@handoffx"]
+
+[[engineering.protected_paths.entries]]
+glob = ".lazyagents/**"
+owners = ["@handoffx"]
+decision = "ask"
+
+[engineering.verify]
+stop_hook_mode = "remind"
+
+[[engineering.verify.commands]]
+id = "fmt"
+label = "Format"
+cmd = "cargo fmt --all -- --check"
+required = true
+
+[[engineering.verify.commands]]
+id = "clippy"
+label = "Clippy"
+cmd = "CARGO_BUILD_WARNINGS=deny cargo clippy --workspace --all-targets --all-features -- -D warnings"
+required = true
+
+[[engineering.verify.commands]]
+id = "test"
+label = "Test"
+cmd = "cargo test --workspace --all-features"
+required = true
+
+[[engineering.verify.commands]]
+id = "doc"
+label = "Docs"
+cmd = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"
+required = true
+
+[engineering.github]
+enabled = true
+repo = "lazyaix/lazyagents"
+enable_mcp_preset = false
+enable_skills = ["pr-author", "ci-remediation", "stacked-pr"]
+
+[engineering.github.sync]
+ci_workflow = true
+ci_install = "cargo-workspace"
+pr_template = true
+pr_template_mode = "managed-block"
+lint_workflows = true
+
+[engineering.github.expected_rulesets]
+protect_default_branch = true
+require_linear_history = true
+require_pr_before_merge = true
+required_checks = [
+  "PR Title",
+  "Format",
+  "Clippy",
+  "Test",
+  "Cargo Deny",
+  "Zizmor",
+]
+
+[engineering.github.expected_rulesets.release_tags]
+pattern = "v*"
+immutable_releases = true
+
+[engineering.supply_chain]
+allowed_licenses = [
+  "Apache-2.0",
+  "MIT",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Zlib",
+  "0BSD",
+  "CC0-1.0",
+]
+forbid_copyleft = true
+publish_cooldown_days = 7
+stateless_github_tokens = true
+
+[engineering.architecture]
+docs = [
+  "docs/architecture.md",
+  "docs/git-workflow.md",
+  "docs/rust-standards.md",
+  "docs/tui-architecture.md",
+]
+
+[[engineering.architecture.layers]]
+name = "la-core"
+glob = "crates/la-core/**"
+rule = "Pure Sans-I/O domain core (M-IMPL-IO). Zero filesystem, network, PTY, Tokio, or Ratatui dependencies."
+
+[[engineering.architecture.layers]]
+name = "la-runtime"
+glob = "crates/la-runtime/**"
+rule = "Depends only on la-core. Never cross-depend on la-tui. Handles atomic filesystem writes, git probing, and structured Tokio tasks."
+
+[[engineering.architecture.layers]]
+name = "la-tui"
+glob = "crates/la-tui/**"
+rule = "Depends only on la-core. Never cross-depend on la-runtime and never hardcode Color::* inside widgets (always read &Theme tokens)."
+
+[[engineering.architecture.layers]]
+name = "la-cli"
+glob = "crates/la-cli/**"
+rule = "Thin binary entrypoint (main.rs < 100 LOC) wiring la-core, la-runtime, and la-tui. Never emit tracing output to stdout/stderr while TUI is active."
+
+[engineering.release]
+tool = "manual"
+tag_pattern = "v{{ version }}"
+immutable_releases = true
+
+[[instructions]]
+output = "AGENTS.md"
+auto_probe = true
+
+[[instructions.sections]]
+file = "sections/overview.md"
+
+[[instructions.sections]]
+preset = "builtin:engineering/git-workflow"
+
+[[instructions.sections]]
+file = "sections/rust-tui-rules.md"
+
+[[instructions.sections]]
+preset = "builtin:engineering/verify-and-supply-chain"
+
+[[instructions.sections]]
+preset = "builtin:engineering/github-hygiene"
+
+[[rules]]
+id = "rust-module-hygiene"
+source = "rules/rust-module-hygiene.md"
+trigger = "glob"
+globs = ["crates/**/*.rs"]
+description = "Rust 1.100 modern module layout, strict lib.rs facade, BLUF ordering, and zero-panic lint red lines"
+enabled = true
+
+[[rules]]
+id = "tui-visual-tokens"
+source = "rules/tui-visual-tokens.md"
+trigger = "glob"
+globs = ["crates/la-tui/**/*.rs"]
+description = "Ratatui 0.30 + TachyonFX semantic Theme tokens, CJK grapheme width safety, and TestBackend/insta snapshot rules"
+enabled = true
+
+[[agents]]
+name = "rust-reviewer"
+source = "agents/rust-reviewer.md"
+description = "Read-only Rust 1.100 architecture, workspace boundary, and security reviewer"
+model = "pro"
+capabilities = ["file_read", "search"]
+skills = ["pr-author", "ci-remediation"]
+enabled = true
+
+[agents.targets.antigravity]
+main_agent = false
+subagent = true
+permission_mode = "plan"

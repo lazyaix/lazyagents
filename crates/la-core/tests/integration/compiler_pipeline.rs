@@ -292,6 +292,21 @@ fn github_ci_install_modes_and_managed_pr_template_preserve_custom_sections() {
         .iter()
         .find(|f| f.path == ".github/workflows/lazyagents.yml")
         .unwrap();
+    assert!(
+        ci_file
+            .content
+            .contains("  push:\n    branches:\n      - main\n")
+    );
+    assert!(
+        ci_file
+            .content
+            .contains("  lazyagents-check:\n    name: LazyAgents Check\n")
+    );
+    assert!(
+        ci_file
+            .content
+            .contains("      - name: Checkout repository\n        uses: actions/checkout@")
+    );
     assert!(ci_file.content.contains("lazyagents-installer.sh"));
     assert!(
         ci_file

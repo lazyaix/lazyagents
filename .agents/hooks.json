@@ -1,0 +1,53 @@
+{
+  "lazyagents-git-guard": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "lazyagents hook eval git-guard",
+            "timeout": 15,
+            "type": "command"
+          }
+        ],
+        "matcher": "run_command"
+      }
+    ]
+  },
+  "lazyagents-protected-paths": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "lazyagents hook eval protected-paths",
+            "timeout": 15,
+            "type": "command"
+          }
+        ],
+        "matcher": "edit_file|write_file"
+      }
+    ]
+  },
+  "lazyagents-secret-guard": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "lazyagents hook eval secret-guard",
+            "timeout": 15,
+            "type": "command"
+          }
+        ],
+        "matcher": "edit_file|write_file"
+      }
+    ]
+  },
+  "lazyagents-verify-gate": {
+    "Stop": [
+      {
+        "command": "lazyagents hook eval verify-gate",
+        "timeout": 15,
+        "type": "command"
+      }
+    ]
+  }
+}

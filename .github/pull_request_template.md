@@ -5,7 +5,6 @@
 ## Related Issues / Dependencies
 
 <!-- Link issues (e.g., Closes #123) or upstream stacked PRs (e.g., Depends on #120). -->
-<!-- Under Squash-Only merge: prefer Sequential PRs; if stacking, keep downstream PRs as Draft and restack via `git rebase --update-refs --onto origin/main <old-parent-tip> <top-branch>` (never plain rebase or GitHub "Update branch") after upstream merges. -->
 - Closes #
 
 ## Type of Change
@@ -18,15 +17,17 @@
 - [ ] `ci` / `build` / `chore`: Tooling, CI, or maintenance
 - [ ] Breaking change (`!` in PR title and `BREAKING CHANGE:` footer below)
 
+<!-- lazyagents:start -->
+<!-- Under squash-only merge: keep downstream stacked PRs as Draft and restack via `git rebase --update-refs --onto origin/main <old-parent-tip> <top-branch>` after upstream merges. -->
+
 ## Verification
 
-- [ ] `cargo fmt --all -- --check` passes
-- [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes
-- [ ] `cargo test --workspace --all-features` passes
-- [ ] PR title follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/)
-- [ ] Documentation / tests updated where applicable
+- [ ] `cargo fmt --all -- --check` (Format)
+- [ ] `CARGO_BUILD_WARNINGS=deny cargo clippy --workspace --all-targets --all-features -- -D warnings` (Clippy)
+- [ ] `cargo test --workspace --all-features` (Test)
+- [ ] `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features` (Docs)
 
 ## AI-Assisted Disclosure (Optional)
 
-<!-- If substantially authored by an AI coding agent, note the scope and confirm all changes were reviewed and verified. -->
 - [ ] Human-reviewed and verified locally
+<!-- lazyagents:end -->

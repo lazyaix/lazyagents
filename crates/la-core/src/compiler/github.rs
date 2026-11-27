@@ -113,52 +113,67 @@ fn compile_lazyagents_ci_workflow(manifest: &ProjectManifest) -> GeneratedFile {
     let branch = &manifest.engineering.git.default_branch;
     let run_steps = match manifest.engineering.github.sync.ci_install {
         CiInstallMode::ReleaseBinary => {
-            "      - name: Install lazyagents binary\n\
-             \x20       run: |\n\
-             \x20         curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lazyaix/lazyagents/releases/latest/download/lazyagents-installer.sh | sh\n\
-             \x20         echo \"$HOME/.cargo/bin\" >> \"$GITHUB_PATH\"\n\
-             \x20         echo \"$HOME/.local/bin\" >> \"$GITHUB_PATH\"\n\
-             \n\
-             \x20     - name: Verify AI agent configurations\n\
-             \x20       run: lazyagents check --strict --format github\n"
+            concat!(
+                "      - name: Install lazyagents binary\n",
+                "        run: |\n",
+                "          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lazyaix/lazyagents/releases/latest/download/lazyagents-installer.sh | sh\n",
+                "          echo \"$HOME/.cargo/bin\" >> \"$GITHUB_PATH\"\n",
+                "          echo \"$HOME/.local/bin\" >> \"$GITHUB_PATH\"\n",
+                "\n",
+                "      - name: Verify AI agent configurations\n",
+                "        run: lazyagents check --strict --format github\n",
+            )
         }
         CiInstallMode::CargoWorkspace => {
-            "      - name: Activate pinned Rust toolchain\n\
-             \x20       run: rustup show active-toolchain\n\
-             \n\
-             \x20     - name: Verify AI agent configurations\n\
-             \x20       run: cargo run --locked -- check --strict --format github\n"
+            concat!(
+                "      - name: Activate pinned Rust toolchain\n",
+                "        run: rustup show active-toolchain\n",
+                "\n",
+                "      - name: Restore Cargo cache\n",
+                "        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3\n",
+                "\n",
+                "      - name: Verify AI agent configurations\n",
+                "        run: cargo run --locked -- check --strict --format github\n",
+            )
         }
     };
     let yml = format!(
-        "name: LazyAgents Check\n\
-\n\
-on:\n\
-  push:\n\
-    branches:\n\
-      - {branch}\n\
-  pull_request:\n\
-    branches:\n\
-      - {branch}\n\
-  merge_group:\n\
-    branches:\n\
-      - {branch}\n\
-\n\
-permissions: {{}}\n\
-\n\
-jobs:\n\
-  lazyagents-check:\n\
-    name: LazyAgents Check\n\
-    runs-on: ubuntu-latest\n\
-    permissions:\n\
-      contents: read\n\
-    steps:\n\
-      - name: Checkout repository\n\
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n\
-        with:\n\
-          persist-credentials: false\n\
-\n\
-{run_steps}"
+        concat!(
+            "name: LazyAgents Check\n",
+            "\n",
+            "on:\n",
+            "  push:\n",
+            "    branches:\n",
+            "      - {branch}\n",
+            "  pull_request:\n",
+            "    branches:\n",
+            "      - {branch}\n",
+            "  merge_group:\n",
+            "    branches:\n",
+            "      - {branch}\n",
+            "\n",
+            "concurrency:\n",
+            "  group: ${{{{ github.workflow }}}}-${{{{ github.event.pull_request.number || github.ref }}}}\n",
+            "  cancel-in-progress: ${{{{ github.ref != 'refs/heads/{branch}' }}}}\n",
+            "\n",
+            "permissions: {{}}\n",
+            "\n",
+            "jobs:\n",
+            "  lazyagents-check:\n",
+            "    name: LazyAgents Check\n",
+            "    runs-on: ubuntu-latest\n",
+            "    permissions:\n",
+            "      contents: read\n",
+            "    steps:\n",
+            "      - name: Checkout repository\n",
+            "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n",
+            "        with:\n",
+            "          persist-credentials: false\n",
+            "\n",
+            "{run_steps}",
+        ),
+        branch = branch,
+        run_steps = run_steps
     );
     GeneratedFile::whole_file(".github/workflows/lazyagents.yml", yml)
 }

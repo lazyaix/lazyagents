@@ -4,8 +4,10 @@
 
 * @handoffx
 
-# Security-critical governance and automation paths
+# >>> lazyagents managed start
 /.github/ @handoffx
 /deny.toml @handoffx
 /release-plz.toml @handoffx
 /SECURITY.md @handoffx
+/.lazyagents/ @handoffx
+# <<< lazyagents managed end

@@ -1,1 +1,5 @@
 /target
+
+# >>> lazyagents managed start
+.lazyagents/local.toml
+# <<< lazyagents managed end
