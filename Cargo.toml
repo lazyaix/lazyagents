@@ -19,10 +19,12 @@ keywords = ["ai", "agents", "tui", "cli", "ratatui"]
 categories = ["command-line-utilities", "development-tools"]
 
 [workspace.dependencies]
+globset = "0.4"
 la-core = { path = "crates/la-core", version = "0.1.0" }
 la-runtime = { path = "crates/la-runtime", version = "0.1.0" }
 la-tui = { path = "crates/la-tui", version = "0.1.0" }
 minijinja = { version = "3.1", features = ["serde", "preserve_order"] }
+regex = "1.13"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.11"

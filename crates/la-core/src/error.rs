@@ -95,4 +95,11 @@ pub enum CoreError {
         /// Human-readable description of the lockfile failure.
         message: String,
     },
+
+    /// Built-in hook evaluation failed to parse its stdin payload or compile policy globs.
+    #[error("hook evaluation failed: {message}")]
+    HookEval {
+        /// Sanitized explanation of the hook evaluation failure.
+        message: String,
+    },
 }
